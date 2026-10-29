@@ -1,4 +1,4 @@
-package com.example.explora2.ui.screen
+package com.example.explora2.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -28,11 +28,11 @@ fun HomeScreen(navController: NavController) {
             ModalDrawerSheet {
                 Text(text = "Menú Explora2", modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.titleMedium)
                 NavigationDrawerItem(
-                    label = { Text("Ir a Registro") },
+                    label = { Text("Cambiar de Perfil") },
                     selected = false,
                     onClick = {
                         scope.launch { drawerState.close() }
-                        navController.navigate(Screen.Registro.route)
+                        navController.navigate(Screen.SelectorPerfil.route)
                     }
                 )
             }
@@ -64,8 +64,8 @@ fun HomeScreen(navController: NavController) {
                     style = MaterialTheme.typography.headlineSmall
                 )
 
-                Button(onClick = { navController.navigate(Screen.Registro.route) }) {
-                    Text("Ir al Formulario")
+                Button(onClick = { navController.navigate(Screen.SelectorPerfil.route) }) {
+                    Text("Volver al Selector de Perfiles")
                 }
 
                 Image(

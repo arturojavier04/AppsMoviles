@@ -5,15 +5,16 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.explora2.ui.screen.HomeScreen
-import com.example.explora2.ui.screen.RegistroScreen
-import com.example.explora2.ui.screen.ResumenScreen
+import com.example.explora2.ui.screens.PerfilesScreen
+import com.example.explora2.ui.screens.PanelMaestroScreen
+// (Aquí importaremos las demás pantallas de estudiante y UTP cuando las creemos)
 import com.example.explora2.viewmodel.UsuarioViewModel
 
 sealed class Screen(val route: String) {
-    data object Home : Screen("home_screen")
-    data object Registro : Screen("registro_screen")
-    data object Resumen : Screen("resumen_screen")
+    data object SelectorPerfil : Screen("selector_perfil")
+    data object PanelDocente : Screen("panel_docente")
+    data object PanelEstudiante : Screen("panel_estudiante")
+    data object PanelUtp : Screen("panel_utp")
 }
 
 @Composable
@@ -23,16 +24,19 @@ fun AppNavigation() {
 
     NavHost(
         navController = navController,
-        startDestination = Screen.Home.route
+        startDestination = Screen.SelectorPerfil.route // La app ahora inicia eligiendo el perfil
     ) {
-        composable(Screen.Home.route) {
-            HomeScreen(navController = navController)
+        composable(Screen.SelectorPerfil.route) {
+            PerfilesScreen(navController = navController)
         }
-        composable(Screen.Registro.route) {
-            RegistroScreen(navController = navController, viewModel = usuarioViewModel)
+        composable(Screen.PanelDocente.route) {
+            PanelMaestroScreen(navController = navController)
         }
-        composable(Screen.Resumen.route) {
-            ResumenScreen(viewModel = usuarioViewModel)
+        composable(Screen.PanelEstudiante.route) {
+            // Aquí pondremos la pantalla del estudiante de 2.° básico más adelante
+        }
+        composable(Screen.PanelUtp.route) {
+            // Aquí pondremos la pantalla de Jefatura UTP más adelante
         }
     }
 }
