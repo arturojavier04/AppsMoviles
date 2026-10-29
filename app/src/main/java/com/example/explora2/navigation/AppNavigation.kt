@@ -7,6 +7,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.explora2.ui.screens.PerfilesScreen
 import com.example.explora2.ui.screens.PanelMaestroScreen
+import com.example.explora2.ui.screens.PanelUtpScreen
+
 // (Aquí importaremos las demás pantallas de estudiante y UTP cuando las creemos)
 import com.example.explora2.viewmodel.UsuarioViewModel
 
@@ -37,6 +39,10 @@ fun AppNavigation() {
         }
         composable(Screen.PanelUtp.route) {
             // Aquí pondremos la pantalla de Jefatura UTP más adelante
+        }
+
+        composable(Screen.PanelUtp.route) {
+            PanelUtpScreen(navController = navController)
         }
     }
 }
