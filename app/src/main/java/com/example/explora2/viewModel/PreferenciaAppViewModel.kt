@@ -1,9 +1,9 @@
-package com.example.explora2.viewmodel
+package com.example.explora2.viewModel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.explora2.repositorystore.ConfiguracionStore
+import com.example.explora2.repository.ConfiguracionStore
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
