@@ -1,45 +1,137 @@
 package com.example.explora2.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.explora2.ui.screens.inicio.HomeScreen
-import com.example.explora2.ui.screens.perfiles.PerfilesScreen
-import com.example.explora2.ui.screens.docentes.PanelDocenteScreen
-import com.example.explora2.ui.screens.utp.PanelUtpScreen
 
-// (Aquí importaremos las demás pantallas de estudiante y UTP cuando las creemos)
+// Imports de Inicio
+import com.example.explora2.ui.screens.inicio.HomeScreen
+
+// Imports de Perfiles y Registro
+import com.example.explora2.ui.screens.perfiles.PerfilesScreen
+import com.example.explora2.ui.screens.perfiles.RegistroAccesoScreen
+import com.example.explora2.ui.screens.perfiles.FichaRegistroScreen
+import com.example.explora2.ui.screens.perfiles.AvatarPersonalizacionScreen
+
+// Imports de Docentes
+import com.example.explora2.ui.screens.docentes.PanelDocenteScreen
+import com.example.explora2.ui.screens.docentes.FormularioGestionScreen
+import com.example.explora2.ui.screens.docentes.ConfiguracionExamenScreen
+import com.example.explora2.ui.screens.docentes.RevisionEntregasScreen
+
+// Imports de Alumno (2.° Básico)
+import com.example.explora2.ui.screens.alumno.PanelAlumnoScreen
+import com.example.explora2.ui.screens.alumno.AsignaturasScreen
+import com.example.explora2.ui.screens.alumno.UnidadesObjetivoScreen
+import com.example.explora2.ui.screens.alumno.ProgresoEstudianteScreen
+
+// Imports de UTP
+import com.example.explora2.ui.screens.utp.PanelUtpScreen
+import com.example.explora2.ui.screens.utp.AutorizacionUnidadesScreen
+import com.example.explora2.ui.screens.utp.InformeScreen
+
+// ViewModels del proyecto
 import com.example.explora2.viewmodel.UsuarioViewModel
+import com.example.explora2.viewmodel.PersonalizacionViewModel
 
 sealed class Screen(val route: String) {
+    // Inicio y Roles
+    data object Home : Screen("home_screen")
     data object SelectorPerfil : Screen("selector_perfil")
-    data object PanelDocente : Screen("panel_docente")
+
+    // Perfiles y Acceso
+    data object RegistroAcceso : Screen("registro_acceso")
+    data object ResumenRegistro : Screen("resumen_registro")
+    data object MiAvatar : Screen("mi_avatar")
+
+    // Alumno
     data object PanelEstudiante : Screen("panel_estudiante")
+    data object Asignaturas : Screen("asignaturas_alumno")
+    data object UnidadesObjetivos : Screen("unidades_alumno")
+    data object ProgresoAlumno : Screen("progreso_alumno")
+
+    // Docente
+    data object PanelDocente : Screen("panel_docente")
+    data object GestionContenido : Screen("gestion_contenido")
+    data object ConfiguracionExamen : Screen("config_examen")
+    data object RevisionEntregas : Screen("revision_entregas")
+
+    // UTP
     data object PanelUtp : Screen("panel_utp")
+    data object AutorizacionUnidades : Screen("autorizacion_unidades")
+    data object InformeConsolidado : Screen("informe_consolidado")
 }
 
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
     val usuarioViewModel: UsuarioViewModel = viewModel()
+    val personalizacionViewModel: PersonalizacionViewModel = viewModel()
 
     NavHost(
         navController = navController,
-        startDestination = Screen.SelectorPerfil.route // La app ahora inicia eligiendo el perfil
+        startDestination = Screen.SelectorPerfil.route
     ) {
+        // --- SELECCIÓN Y REGISTRO ---
         composable(Screen.SelectorPerfil.route) {
             PerfilesScreen(navController = navController)
         }
+        composable(Screen.Home.route) {
+            HomeScreen(navController = navController)
+        }
+        composable(Screen.RegistroAcceso.route) {
+            RegistroAccesoScreen(navController = navController, viewModel = usuarioViewModel)
+        }
+        composable(Screen.ResumenRegistro.route) {
+            FichaRegistroScreen(navController = navController, viewModel = usuarioViewModel)
+        }
+        composable(Screen.MiAvatar.route) {
+            AvatarPersonalizacionScreen(viewModel = personalizacionViewModel)
+        }
+
+        // --- ESTUDIANTE (2.° BÁSICO) ---
+        composable(Screen.PanelEstudiante.route) {
+            PanelAlumnoScreen(navController = navController)
+        }
+        composable(Screen.Asignaturas.route) {
+            AsignaturasScreen(
+                onLenguajeClick = { navController.navigate(Screen.UnidadesObjetivos.route) },
+                onMatematicaClick = {},
+                onCienciasClick = {},
+                onHistoriaClick = {}
+            )
+        }
+        composable(Screen.UnidadesObjetivos.route) {
+            UnidadesObjetivoScreen(navController = navController)
+        }
+        composable(Screen.ProgresoAlumno.route) {
+            ProgresoEstudianteScreen()
+        }
+
+        // --- DOCENTE ---
         composable(Screen.PanelDocente.route) {
             PanelDocenteScreen(navController = navController)
         }
-        composable(Screen.PanelEstudiante.route) {
-            // Aquí pondremos la pantalla del estudiante de 2.° básico más adelante
+        composable(Screen.ConfiguracionExamen.route) {
+            ConfiguracionExamenScreen(navController = navController)
         }
+        composable(Screen.RevisionEntregas.route) {
+            RevisionEntregasScreen(navController = navController)
+        }
+
+        // --- UTP ---
         composable(Screen.PanelUtp.route) {
             PanelUtpScreen(navController = navController)
+        }
+        composable(Screen.AutorizacionUnidades.route) {
+            AutorizacionUnidadesScreen(navController = navController)
+        }
+        composable(Screen.InformeConsolidado.route) {
+            InformeScreen(navController = navController)
         }
     }
 }
