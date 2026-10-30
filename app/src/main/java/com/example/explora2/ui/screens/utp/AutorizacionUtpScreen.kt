@@ -13,7 +13,7 @@ data class SolicitudUnidad(val id: Int, val docente: String, val unidad: String,
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AutorizacionUnidadesScreen(navController: NavController) {
+fun AutorizacionUtpScreen(navController: NavController) {
     var solicitudes by remember {
         mutableStateOf(
             listOf(

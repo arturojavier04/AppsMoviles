@@ -11,7 +11,7 @@ import androidx.navigation.NavController
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun InformeScreen(navController: NavController) {
+fun InformeUtpScreen(navController: NavController) {
     Scaffold(
         topBar = { TopAppBar(title = { Text("Informe Consolidado (UTP)") }) }
     ) { innerPadding ->

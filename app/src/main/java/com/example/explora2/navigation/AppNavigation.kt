@@ -28,10 +28,11 @@ import com.example.explora2.ui.screens.alumno.UnidadesObjetivoScreen
 import com.example.explora2.ui.screens.alumno.ProgresoEstudianteScreen
 import com.example.explora2.ui.screens.alumno.RendirPruebaScreen
 
-// Imports de UTP
+
+// Imports de UTP actualizados
 import com.example.explora2.ui.screens.utp.PanelUtpScreen
-import com.example.explora2.ui.screens.utp.AutorizacionUnidadesScreen
-import com.example.explora2.ui.screens.utp.InformeScreen
+import com.example.explora2.ui.screens.utp.AutorizacionUtpScreen
+import com.example.explora2.ui.screens.utp.InformeUtpScreen
 
 // ViewModels del proyecto
 import com.example.explora2.viewmodel.UsuarioViewModel
@@ -126,10 +127,10 @@ fun AppNavigation() {
             PanelUtpScreen(navController = navController)
         }
         composable(Screen.AutorizacionUnidades.route) {
-            AutorizacionUnidadesScreen(navController = navController)
+            AutorizacionUtpScreen(navController = navController)
         }
         composable(Screen.InformeConsolidado.route) {
-            InformeScreen(navController = navController)
+            InformeUtpScreen(navController = navController)
         }
     }
 }
