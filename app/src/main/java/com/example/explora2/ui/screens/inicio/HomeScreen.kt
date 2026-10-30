@@ -1,4 +1,4 @@
-package com.example.explora2.ui.screens
+package com.example.explora2.ui.screens.inicio
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*

@@ -1,4 +1,4 @@
-package com.example.explora2.ui.screens
+package com.example.explora2.ui.screens.docentes
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn

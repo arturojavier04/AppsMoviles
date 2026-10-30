@@ -5,9 +5,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.explora2.ui.screens.PerfilesScreen
-import com.example.explora2.ui.screens.PanelDocenteScreen
-import com.example.explora2.ui.screens.PanelUtpScreen
+import com.example.explora2.ui.screens.inicio.HomeScreen
+import com.example.explora2.ui.screens.perfiles.PerfilesScreen
+import com.example.explora2.ui.screens.docentes.PanelDocenteScreen
+import com.example.explora2.ui.screens.utp.PanelUtpScreen
 
 // (Aquí importaremos las demás pantallas de estudiante y UTP cuando las creemos)
 import com.example.explora2.viewmodel.UsuarioViewModel
@@ -37,10 +38,6 @@ fun AppNavigation() {
         composable(Screen.PanelEstudiante.route) {
             // Aquí pondremos la pantalla del estudiante de 2.° básico más adelante
         }
-        composable(Screen.PanelUtp.route) {
-            // Aquí pondremos la pantalla de Jefatura UTP más adelante
-        }
-
         composable(Screen.PanelUtp.route) {
             PanelUtpScreen(navController = navController)
         }
