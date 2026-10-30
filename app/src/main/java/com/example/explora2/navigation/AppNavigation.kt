@@ -28,6 +28,7 @@ import com.example.explora2.ui.screens.alumno.PanelAlumnoScreen
 import com.example.explora2.ui.screens.alumno.AsignaturasScreen
 import com.example.explora2.ui.screens.alumno.UnidadesObjetivoScreen
 import com.example.explora2.ui.screens.alumno.ProgresoEstudianteScreen
+import com.example.explora2.ui.screens.alumno.RendirPruebaScreen
 
 // Imports de UTP
 import com.example.explora2.ui.screens.utp.PanelUtpScreen
@@ -53,6 +54,9 @@ sealed class Screen(val route: String) {
     data object Asignaturas : Screen("asignaturas_alumno")
     data object UnidadesObjetivos : Screen("unidades_alumno")
     data object ProgresoAlumno : Screen("progreso_alumno")
+
+    data object RendirPrueba : Screen("rendir_prueba")
+
 
     // Docente
     data object PanelDocente : Screen("panel_docente")
@@ -110,6 +114,10 @@ fun AppNavigation() {
         }
         composable(Screen.ProgresoAlumno.route) {
             ProgresoEstudianteScreen()
+        }
+
+        composable(Screen.RendirPrueba.route) {
+            RendirPruebaScreen(navController = navController)
         }
 
         // --- DOCENTE ---
