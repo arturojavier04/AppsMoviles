@@ -1,8 +1,6 @@
 package com.example.explora2.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -54,9 +52,7 @@ sealed class Screen(val route: String) {
     data object Asignaturas : Screen("asignaturas_alumno")
     data object UnidadesObjetivos : Screen("unidades_alumno")
     data object ProgresoAlumno : Screen("progreso_alumno")
-
     data object RendirPrueba : Screen("rendir_prueba")
-
 
     // Docente
     data object PanelDocente : Screen("panel_docente")
@@ -102,12 +98,7 @@ fun AppNavigation() {
             PanelAlumnoScreen(navController = navController)
         }
         composable(Screen.Asignaturas.route) {
-            AsignaturasScreen(
-                onLenguajeClick = { navController.navigate(Screen.UnidadesObjetivos.route) },
-                onMatematicaClick = {},
-                onCienciasClick = {},
-                onHistoriaClick = {}
-            )
+            AsignaturasScreen(navController = navController)
         }
         composable(Screen.UnidadesObjetivos.route) {
             UnidadesObjetivoScreen(navController = navController)
@@ -115,7 +106,6 @@ fun AppNavigation() {
         composable(Screen.ProgresoAlumno.route) {
             ProgresoEstudianteScreen()
         }
-
         composable(Screen.RendirPrueba.route) {
             RendirPruebaScreen(navController = navController)
         }
