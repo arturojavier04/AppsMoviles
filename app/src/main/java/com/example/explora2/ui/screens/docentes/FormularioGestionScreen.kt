@@ -21,7 +21,9 @@ fun FormularioGestionScreen(
     onTipoRecursoChange: (String) -> Unit,
     onTituloChange: (String) -> Unit,
     onDescripcionChange: (String) -> Unit,
-    onGuardarClick: () -> Unit
+    onGuardarClick: () -> Unit,
+    onEnviarClick: () -> Unit
+
 ) {
     Column(
         modifier = Modifier
@@ -37,6 +39,7 @@ fun FormularioGestionScreen(
         OutlinedTextField(
             value = uiState.asignatura,
             onValueChange = onAsignaturaChange,
+            enabled = !uiState.enviadoUtp,
             label = { Text("Asignatura") },
             isError = errores.asignatura != null,
             trailingIcon = {
@@ -44,11 +47,13 @@ fun FormularioGestionScreen(
             },
             supportingText = { errores.asignatura?.let { Text(it) } },
             modifier = Modifier.fillMaxWidth()
+
         )
 
         OutlinedTextField(
             value = uiState.unidad,
             onValueChange = onUnidadChange,
+            enabled = !uiState.enviadoUtp,
             label = { Text("Unidad Curricular") },
             isError = errores.unidad != null,
             trailingIcon = {
@@ -61,6 +66,7 @@ fun FormularioGestionScreen(
         OutlinedTextField(
             value = uiState.objetivo,
             onValueChange = onObjetivoChange,
+            enabled = !uiState.enviadoUtp,
             label = { Text("Objetivo de Aprendizaje") },
             isError = errores.objetivo != null,
             trailingIcon = {
@@ -73,6 +79,7 @@ fun FormularioGestionScreen(
         OutlinedTextField(
             value = uiState.tipoRecurso,
             onValueChange = onTipoRecursoChange,
+            enabled = !uiState.enviadoUtp,
             label = { Text("Tipo de Material (Texto / Audio / Visual / Evaluación)") },
             isError = errores.tipoRecurso != null,
             trailingIcon = {
@@ -85,6 +92,7 @@ fun FormularioGestionScreen(
         OutlinedTextField(
             value = uiState.titulo,
             onValueChange = onTituloChange,
+            enabled = !uiState.enviadoUtp,
             label = { Text("Título de la Actividad") },
             isError = errores.titulo != null,
             trailingIcon = {
@@ -97,6 +105,7 @@ fun FormularioGestionScreen(
         OutlinedTextField(
             value = uiState.descripcion,
             onValueChange = onDescripcionChange,
+            enabled = !uiState.enviadoUtp,
             label = { Text("Instrucción o Contenido Didáctico") },
             isError = errores.descripcion != null,
             trailingIcon = {
@@ -110,8 +119,36 @@ fun FormularioGestionScreen(
             onClick = onGuardarClick,
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
         ) {
-            Text("Guardar y Publicar")
+            Text("Validar Contenido")
         }
+
+        if (uiState.validado) {
+            Text(
+                text = "Formulario validado correctamente. Borrador de demostración.",
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+
+
+        if (uiState.validado && !uiState.enviadoUtp) {
+            Button(
+                onClick = onEnviarClick,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Enviar borrador a UTP")
+            }
+        }
+
+        if (uiState.enviadoUtp) {
+            Text(
+                text = if (uiState.autorizado)
+                    "Estado: Autorizado por UTP"
+                else
+                    "Estado: Pendiente de revisión UTP"
+            )
+        }
+
+
     }
 }
 
@@ -127,6 +164,7 @@ fun FormularioGestionScreenPreview() {
         onTipoRecursoChange = {},
         onTituloChange = {},
         onDescripcionChange = {},
-        onGuardarClick = {}
+        onGuardarClick = {},
+        onEnviarClick = {}
     )
 }

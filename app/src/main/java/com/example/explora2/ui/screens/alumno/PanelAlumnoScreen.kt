@@ -13,10 +13,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.explora2.navigation.Screen
+import com.example.explora2.model.GestionUiState
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PanelAlumnoScreen(navController: NavController) {
+fun PanelAlumnoScreen(
+    navController: NavController,
+    gestionUiState: GestionUiState
+) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -42,6 +47,50 @@ fun PanelAlumnoScreen(navController: NavController) {
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.primary
             )
+
+            if (gestionUiState.autorizado &&
+                gestionUiState.asignadoAlumno) {
+
+                Card(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "¡Tienes una nueva actividad!",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+
+                        Text(
+                            text = "Asignatura: ${gestionUiState.asignatura}"
+                        )
+
+                        Text(
+                            text = "Unidad: ${gestionUiState.unidad}"
+                        )
+
+                        Text(
+                            text = "Actividad: ${gestionUiState.titulo}"
+                        )
+
+                        Text(
+                            text = "Objetivo: ${gestionUiState.objetivo}"
+                        )
+
+                        Text(
+                            text = gestionUiState.descripcion
+                        )
+                    }
+                }
+
+            } else {
+                Text(
+                    text = "Todavía no tienes nuevas actividades asignadas."
+                )
+            }
+
 
             // Tarjeta 1: Acceso a las materias del nivel
             Card(

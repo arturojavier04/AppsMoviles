@@ -37,6 +37,12 @@ import com.example.explora2.ui.screens.utp.InformeUtpScreen
 // ViewModels del proyecto
 import com.example.explora2.viewmodel.UsuarioViewModel
 import com.example.explora2.viewmodel.PersonalizacionViewModel
+import com.example.explora2.viewmodel.GestionViewModel
+
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+
+
 
 sealed class Screen(val route: String) {
     // Inicio y Roles
@@ -72,6 +78,8 @@ fun AppNavigation() {
     val navController = rememberNavController()
     val usuarioViewModel: UsuarioViewModel = viewModel()
     val personalizacionViewModel: PersonalizacionViewModel = viewModel()
+    val gestionViewModel: GestionViewModel = viewModel()
+
 
     NavHost(
         navController = navController,
@@ -95,9 +103,17 @@ fun AppNavigation() {
         }
 
         // --- ESTUDIANTE (2.° BÁSICO) ---
+
         composable(Screen.PanelEstudiante.route) {
-            PanelAlumnoScreen(navController = navController)
+
+            val gestionEstado by gestionViewModel.estado.collectAsState()
+
+            PanelAlumnoScreen(
+                navController = navController,
+                gestionUiState = gestionEstado
+            )
         }
+
         composable(Screen.Asignaturas.route) {
             AsignaturasScreen(navController = navController)
         }
@@ -112,9 +128,18 @@ fun AppNavigation() {
         }
 
         // --- DOCENTE ---
+
         composable(Screen.PanelDocente.route) {
-            PanelDocenteScreen(navController = navController)
+
+            val gestionEstado by gestionViewModel.estado.collectAsState()
+
+            PanelDocenteScreen(
+                navController = navController,
+                gestionUiState = gestionEstado,
+                onAsignarClick = gestionViewModel::asignarAlAlumno
+            )
         }
+
         composable(Screen.ConfiguracionExamen.route) {
             ConfiguracionExamenScreen(navController = navController)
         }
@@ -122,13 +147,43 @@ fun AppNavigation() {
             RevisionEntregasScreen(navController = navController)
         }
 
+        composable(Screen.GestionContenido.route) {
+
+            val estado by gestionViewModel.estado.collectAsState()
+
+            FormularioGestionScreen(
+                uiState = estado,
+                errores = estado.errores,
+                onAsignaturaChange = gestionViewModel::onAsignaturaChange,
+                onUnidadChange = gestionViewModel::onUnidadChange,
+                onObjetivoChange = gestionViewModel::onObjetivoChange,
+                onTipoRecursoChange = gestionViewModel::onTipoRecursoChange,
+                onTituloChange = gestionViewModel::onTituloChange,
+                onDescripcionChange = gestionViewModel::onDescripcionChange,
+                onEnviarClick = gestionViewModel::enviarAUtp,
+                onGuardarClick = {
+                    gestionViewModel.validarFormulario()
+                }
+            )
+        }
+
+
         // --- UTP ---
         composable(Screen.PanelUtp.route) {
             PanelUtpScreen(navController = navController)
         }
+
         composable(Screen.AutorizacionUnidades.route) {
-            AutorizacionUtpScreen(navController = navController)
+
+            val estado by gestionViewModel.estado.collectAsState()
+
+            AutorizacionUtpScreen(
+                navController = navController,
+                gestionUiState = estado,
+                onAprobarClick = gestionViewModel::aprobarContenido
+            )
         }
+
         composable(Screen.InformeConsolidado.route) {
             InformeUtpScreen(navController = navController)
         }

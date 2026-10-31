@@ -8,6 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.explora2.navigation.Screen
 
 data class AsignaturaUtp(
     val nombre: String,
@@ -81,14 +82,18 @@ fun PanelUtpScreen(navController: NavController) {
                                     .padding(top = 8.dp),
                                 horizontalArrangement = Arrangement.End
                             ) {
+
                                 Button(
-                                    onClick = { /* Acción para aprobar o revisar trazabilidad */ },
+                                    onClick = {
+                                        navController.navigate(Screen.AutorizacionUnidades.route)
+                                    },
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = MaterialTheme.colorScheme.primary
                                     )
                                 ) {
-                                    Text("Revisar Trazabilidad / OA")
+                                    Text("Ver solicitudes de autorización")
                                 }
+
                             }
                         }
                     }

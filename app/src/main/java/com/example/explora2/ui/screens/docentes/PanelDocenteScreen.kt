@@ -8,6 +8,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.explora2.navigation.Screen
+import com.example.explora2.model.GestionUiState
+
 
 // Modelo de datos para las unidades y desafíos del docente
 data class UnidadDocente(
@@ -20,7 +23,13 @@ data class UnidadDocente(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PanelDocenteScreen(navController: NavController) {
+
+fun PanelDocenteScreen(
+    navController: NavController,
+    gestionUiState: GestionUiState,
+    onAsignarClick: () -> Unit
+) {
+
     // Estado reactivo para la gestión docente de unidades y parámetros de evaluación
     var unidades by remember {
         mutableStateOf(
@@ -69,6 +78,54 @@ fun PanelDocenteScreen(navController: NavController) {
                     modifier = Modifier.padding(top = 4.dp)
                 )
             }
+
+            item {
+                if (gestionUiState.autorizado) {
+
+                    Text(
+                        text = "Contenido autorizado por UTP",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
+                    Text(
+                        text = "Título: ${gestionUiState.titulo}"
+                    )
+
+                    Text(
+                        text = "Asignatura: ${gestionUiState.asignatura}"
+                    )
+
+                    Text(
+                        text = "Objetivo: ${gestionUiState.objetivo}"
+                    )
+
+                    if (gestionUiState.asignadoAlumno) {
+                        Text(
+                            text = "Estado: Asignado al alumno de prueba"
+                        )
+                    } else {
+                        Button(
+                            onClick = onAsignarClick,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Asignar al alumno")
+                        }
+                    }
+                }
+            }
+
+
+            item {
+                Button(
+                    onClick = {
+                        navController.navigate(Screen.GestionContenido.route)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Planificar Contenido Pedagógico")
+                }
+            }
+
 
             items(unidades) { unidad ->
                 Card(

@@ -7,5 +7,10 @@ data class GestionUiState(
     val tipoRecurso: String = "",
     val titulo: String = "",
     val descripcion: String = "",
-    val errores: GestionErrores = GestionErrores()
+    val errores: GestionErrores = GestionErrores(),
+    val validado: Boolean = false,
+    val enviadoUtp: Boolean = false,
+    val autorizado: Boolean = false,
+    val asignadoAlumno: Boolean = false
+
 )

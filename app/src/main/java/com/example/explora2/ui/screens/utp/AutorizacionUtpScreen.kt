@@ -8,12 +8,20 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.explora2.model.GestionUiState
+
 
 data class SolicitudUnidad(val id: Int, val docente: String, val unidad: String, val descripcion: String, val aprobada: Boolean)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AutorizacionUtpScreen(navController: NavController) {
+
+fun AutorizacionUtpScreen(
+    navController: NavController,
+    gestionUiState: GestionUiState,
+    onAprobarClick: () -> Unit
+) {
+
     var solicitudes by remember {
         mutableStateOf(
             listOf(
@@ -32,7 +40,46 @@ fun AutorizacionUtpScreen(navController: NavController) {
                 .padding(innerPadding)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
+        )
+
+
+        {
+
+            if (gestionUiState.enviadoUtp) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "Solicitud enviada por docente",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+
+                            Text("Asignatura: ${gestionUiState.asignatura}")
+                            Text("Unidad: ${gestionUiState.unidad}")
+                            Text("Objetivo: ${gestionUiState.objetivo}")
+                            Text("Tipo de recurso: ${gestionUiState.tipoRecurso}")
+                            Text("Título: ${gestionUiState.titulo}")
+                            Text("Descripción: ${gestionUiState.descripcion}")
+
+                            if (gestionUiState.autorizado) {
+                                Text("Estado: Autorizado por UTP")
+                            } else {
+                                Button(
+                                    onClick = onAprobarClick
+                                ) {
+                                    Text("Autorizar contenido")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             items(solicitudes) { item ->
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
