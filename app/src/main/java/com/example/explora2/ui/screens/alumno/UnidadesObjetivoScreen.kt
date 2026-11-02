@@ -27,7 +27,6 @@ data class ObjetivoItem(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UnidadesObjetivoScreen(navController: NavController) {
-    // Banco curricular oficial para las 4 asignaturas de 2.° básico (MPAZ PRO)
     val listaObjetivos = listOf(
         // Matemática
         ObjetivoItem("OA 08", "Unidad 1", "Sumas y Restas hasta 100", "Resolver adiciones y sustracciones con números de dos dígitos.", "Matemática"),
@@ -46,14 +45,13 @@ fun UnidadesObjetivoScreen(navController: NavController) {
         ObjetivoItem("OA 08", "Unidad 2", "Pueblos Originarios y Paisajes", "Conocer costumbres y ubicación de los pueblos originarios de Chile.", "Historia")
     )
 
-    // Estado reactivo para filtrar por la materia seleccionada
     var materiaSeleccionada by remember { mutableStateOf("Lenguaje") }
     val categorias = listOf("Lenguaje", "Matemática", "Ciencias", "Historia")
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Unidades y Objetivos (2.° Básico)") },
+                title = { Text("Unidades y Objetivos") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
@@ -78,7 +76,6 @@ fun UnidadesObjetivoScreen(navController: NavController) {
                 color = MaterialTheme.colorScheme.primary
             )
 
-            // Selector horizontal con las 4 asignaturas del caso
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -94,7 +91,6 @@ fun UnidadesObjetivoScreen(navController: NavController) {
                 }
             }
 
-            // Listado de unidades filtradas por la materia activa
             LazyColumn(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -104,7 +100,8 @@ fun UnidadesObjetivoScreen(navController: NavController) {
                 items(unidadesFiltradas) { item ->
                     Card(
                         onClick = {
-                            // Al tocar la tarjeta, el estudiante navega a rendir la evaluación/desafío interactivo
+                            // Pasa la materia exacta seleccionada para que abra su evaluación correspondiente
+                            navController.currentBackStackEntry?.savedStateHandle?.set("materia", item.asignatura)
                             navController.navigate(Screen.RendirPrueba.route)
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -130,7 +127,7 @@ fun UnidadesObjetivoScreen(navController: NavController) {
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Toca para abrir evaluación ›",
+                                text = "Toca para abrir evaluación de ${item.asignatura} ›",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.secondary
                             )

@@ -20,7 +20,6 @@ import com.example.explora2.repository.ConfiguracionStore
 import com.example.explora2.ui.utils.Audio
 import kotlinx.coroutines.launch
 
-// Modelo para preguntas pedagógicas de 2.° básico
 data class PreguntaEvaluacion(
     val asignatura: String,
     val titulo: String,
@@ -35,6 +34,11 @@ fun RendirPruebaScreen(navController: NavController) {
     val contexto = LocalContext.current
     val scope = rememberCoroutineScope()
 
+    // Recibe la materia desde la pantalla anterior (si viene de Matemática, arranca en Matemática)
+    val materiaRecibida = navController.previousBackStackEntry
+        ?.savedStateHandle
+        ?.get<String>("materia") ?: "Lenguaje"
+
     val configuracionStore = remember { ConfiguracionStore(contexto) }
     val intentosRestantes by configuracionStore.intentosRestantesFlow.collectAsState(initial = 2)
     val ultimoPuntaje by configuracionStore.ultimoPuntajeFlow.collectAsState(initial = 0)
@@ -48,6 +52,7 @@ fun RendirPruebaScreen(navController: NavController) {
     }
 
     RendirPruebaContent(
+        materiaInicial = materiaRecibida,
         intentosRestantes = intentosRestantes,
         ultimoPuntaje = ultimoPuntaje,
         onVolverClick = { navController.popBackStack() },
@@ -63,6 +68,7 @@ fun RendirPruebaScreen(navController: NavController) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RendirPruebaContent(
+    materiaInicial: String = "Lenguaje",
     intentosRestantes: Int,
     ultimoPuntaje: Int,
     onVolverClick: () -> Unit,
@@ -71,44 +77,44 @@ fun RendirPruebaContent(
 ) {
     val maximosIntentos = 2
 
-    // Banco de desafíos oficiales para las 4 asignaturas del caso
     val evaluaciones = listOf(
         PreguntaEvaluacion(
             asignatura = "Lenguaje",
-            titulo = "Lectura: Fábula y Comprensión",
+            titulo = "Evaluación: Lenguaje (Fábula)",
             pregunta = "¿Qué personaje ayudó al león a escapar de la red?",
             opciones = listOf("Un ratón pequeño", "Un cazador del bosque", "Un pájaro veloz"),
             respuestaCorrecta = 0,
-            explicacion = "El ratón royó la cuerda de la red con sus dientes."
+            explicacion = "El ratón pequeño ayudó royendo la cuerda de la red con sus dientes."
         ),
         PreguntaEvaluacion(
             asignatura = "Matemática",
-            titulo = "Matemática: Sumas hasta 100",
+            titulo = "Evaluación: Matemática (Sumas)",
             pregunta = "¿Cuánto es 35 + 24?",
             opciones = listOf("49", "59", "61"),
             respuestaCorrecta = 1,
-            explicacion = "30 + 20 son 50, y 5 + 4 son 9. Da 59."
+            explicacion = "35 más 24 es igual a 59 (30 + 20 = 50, y 5 + 4 = 9)."
         ),
         PreguntaEvaluacion(
             asignatura = "Ciencias",
-            titulo = "Ciencias: Hábitos y Cuerpo",
-            pregunta = "¿Qué órgano bombea sangre a todo el cuerpo humano?",
+            titulo = "Evaluación: Ciencias Naturales",
+            pregunta = "¿Qué órgano bombea sangre a todo el cuerpo?",
             opciones = listOf("El estómago", "Los pulmones", "El corazón"),
             respuestaCorrecta = 2,
-            explicacion = "El corazón bombea sangre para dar energía a todo el cuerpo."
+            explicacion = "El corazón bombea sangre para llevar oxígeno y energía a todo el cuerpo."
         ),
         PreguntaEvaluacion(
             asignatura = "Historia",
-            titulo = "Historia: Nuestra Comunidad",
+            titulo = "Evaluación: Historia y Sociedad",
             pregunta = "¿Qué institución ayuda a apagar incendios en la comunidad?",
             opciones = listOf("Bomberos", "El hospital", "La biblioteca"),
             respuestaCorrecta = 0,
-            explicacion = "Los bomberos asisten a la comunidad ante incendios y rescates."
+            explicacion = "Los bomberos asisten y protegen a la comunidad frente a incendios."
         )
     )
 
-    var materiaActiva by remember { mutableStateOf("Lenguaje") }
-    val evaluacionActual = evaluaciones.first { it.asignatura == materiaActiva }
+    // Se posiciona automáticamente en la materia tocada
+    var materiaActiva by remember { mutableStateOf(materiaInicial) }
+    val evaluacionActual = evaluaciones.firstOrNull { it.asignatura == materiaActiva } ?: evaluaciones.first()
 
     var respuestaSeleccionada by remember { mutableStateOf<Int?>(null) }
     var evaluacionEnviada by remember { mutableStateOf(false) }
@@ -137,8 +143,8 @@ fun RendirPruebaContent(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Selector horizontal para cambiar de materia dentro de la prueba
-            Text(text = "Elige la evaluación de tu asignatura:", style = MaterialTheme.typography.labelLarge)
+            // Selector horizontal (permite cambiar a otra materia si el alumno lo desea)
+            Text(text = "Asignatura activa:", style = MaterialTheme.typography.labelLarge)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -158,7 +164,7 @@ fun RendirPruebaContent(
                 }
             }
 
-            // Tarjeta de estado de intentos
+            // Tarjeta de Intentos
             Card(
                 colors = CardDefaults.cardColors(
                     containerColor = if (intentosRestantes > 0) MaterialTheme.colorScheme.primaryContainer
@@ -173,17 +179,17 @@ fun RendirPruebaContent(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Intentos disponibles: $intentosRestantes de $maximosIntentos",
+                            text = "Intentos restantes: $intentosRestantes de $maximosIntentos",
                             style = MaterialTheme.typography.titleMedium
                         )
                         Text(
                             text = if (intentosRestantes > 0) "Escucha y responde el desafío."
-                            else "Has agotado los intentos para esta prueba.",
+                            else "Has agotado los intentos configurados para esta prueba.",
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
                     IconButton(onClick = {
-                        onReproducirAudio("Tienes $intentosRestantes intentos para responder.")
+                        onReproducirAudio("Tienes $intentosRestantes intentos restantes para responder.")
                     }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.VolumeUp,
@@ -193,7 +199,7 @@ fun RendirPruebaContent(
                 }
             }
 
-            // Pregunta con soporte auditivo
+            // Pregunta y opciones
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(
@@ -261,7 +267,7 @@ fun RendirPruebaContent(
                 Text("Entregar y Guardar Evaluación")
             }
 
-            // Retroalimentación pedagógica inmediata
+            // Retroalimentación
             if (evaluacionEnviada) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -315,6 +321,7 @@ fun RendirPruebaContent(
 fun RendirPruebaScreenPreview() {
     MaterialTheme {
         RendirPruebaContent(
+            materiaInicial = "Lenguaje",
             intentosRestantes = 2,
             ultimoPuntaje = 0,
             onVolverClick = {},
