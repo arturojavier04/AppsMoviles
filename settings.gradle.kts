@@ -24,4 +24,3 @@ dependencyResolutionManagement {
 
 rootProject.name = "Explora2"
 include(":app")
- 

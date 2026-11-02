@@ -10,7 +10,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.explora2.R
+import com.example.explora2.R.drawable.logo
 
 @Composable
 fun HomeScreenMedium(onComenzarClick: () -> Unit) {
@@ -45,7 +45,7 @@ fun HomeScreenMedium(onComenzarClick: () -> Unit) {
             }
 
             Image(
-                painter = painterResource(id = R.drawable.`logo`),
+                painter = painterResource(id = R.drawable.`logo.png`),
                 contentDescription = "Logo Explora2",
                 modifier = Modifier
                     .weight(1f)
