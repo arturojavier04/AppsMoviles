@@ -4,6 +4,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -11,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -31,7 +33,7 @@ fun InterruptorLectura(
         label = "animacionColorLectura"
     )
 
-    Column {
+    Column(modifier = Modifier.padding(16.dp)) {
         Text(
             text = if (persistido) "Modo Lectura Guiada: ACTIVO" else "Modo Lectura Guiada: INACTIVO",
             color = colorDinamico,
@@ -46,5 +48,21 @@ fun InterruptorLectura(
         }) {
             Text(text = etiquetaAccion)
         }
+    }
+}
+
+@Preview(name = "Interruptor Lectura - Activo", showBackground = true)
+@Composable
+fun InterruptorLecturaActivoPreview() {
+    MaterialTheme {
+        InterruptorLectura(habilitado = true, onAlternar = {})
+    }
+}
+
+@Preview(name = "Interruptor Lectura - Inactivo", showBackground = true)
+@Composable
+fun InterruptorLecturaInactivoPreview() {
+    MaterialTheme {
+        InterruptorLectura(habilitado = false, onAlternar = {})
     }
 }

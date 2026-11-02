@@ -14,10 +14,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun AvatarCircular(fotoUri: Uri?) {
+fun AvatarCircular(fotoUri: Uri? = null) {
     Box(
         modifier = Modifier
             .size(150.dp)
@@ -33,5 +34,13 @@ fun AvatarCircular(fotoUri: Uri?) {
                 tint = Color.Gray
             )
         }
+    }
+}
+
+@Preview(name = "Avatar Circular Vacío", showBackground = true)
+@Composable
+fun AvatarCircularPreview() {
+    MaterialTheme {
+        AvatarCircular(fotoUri = null)
     }
 }

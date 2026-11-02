@@ -3,8 +3,10 @@ package com.example.explora2.ui.screens.utp
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -19,7 +21,6 @@ data class AsignaturaUtp(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PanelUtpScreen(navController: NavController) {
-    // Lista simulada de las 4 asignaturas exigidas por el caso MPAZ PRO
     val asignaturas = listOf(
         AsignaturaUtp("Lenguaje y Comunicación", 3, "Unidades Autorizadas"),
         AsignaturaUtp("Matemática", 2, "En Revisión por UTP"),
@@ -30,7 +31,15 @@ fun PanelUtpScreen(navController: NavController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Panel Jefatura UTP - Administrador Pedagógico") }
+                title = { Text("Panel Jefatura UTP") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.navigate(Screen.SelectorPerfil.route) }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver a Selector de Perfil"
+                        )
+                    }
+                }
             )
         }
     ) { innerPadding ->
@@ -47,12 +56,29 @@ fun PanelUtpScreen(navController: NavController) {
             )
 
             Text(
-                text = "Gestione, apruebe o modifique las unidades didácticas del nivel de 2.° Básico de la Escuela Marcela Paz.",
+                text = "Gestione y supervise las unidades didácticas del nivel de 2.° Básico de la Escuela Marcela Paz.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            // Listado de las asignaturas institucionales
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = { navController.navigate(Screen.AutorizacionUnidades.route) },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Autorizaciones")
+                }
+                OutlinedButton(
+                    onClick = { navController.navigate(Screen.InformeConsolidado.route) },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Consolidado OA")
+                }
+            }
+
             LazyColumn(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -75,26 +101,6 @@ fun PanelUtpScreen(navController: NavController) {
                             )
                             Text(text = "• Unidades activas: ${asignatura.unidadesCreadas}")
                             Text(text = "• Estado: ${asignatura.estadoAprobacion}")
-
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 8.dp),
-                                horizontalArrangement = Arrangement.End
-                            ) {
-
-                                Button(
-                                    onClick = {
-                                        navController.navigate(Screen.AutorizacionUnidades.route)
-                                    },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary
-                                    )
-                                ) {
-                                    Text("Ver solicitudes de autorización")
-                                }
-
-                            }
                         }
                     }
                 }

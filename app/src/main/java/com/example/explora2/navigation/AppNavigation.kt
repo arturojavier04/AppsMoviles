@@ -28,7 +28,6 @@ import com.example.explora2.ui.screens.alumno.UnidadesObjetivoScreen
 import com.example.explora2.ui.screens.alumno.ProgresoEstudianteScreen
 import com.example.explora2.ui.screens.alumno.RendirPruebaScreen
 
-
 // Imports de UTP actualizados
 import com.example.explora2.ui.screens.utp.PanelUtpScreen
 import com.example.explora2.ui.screens.utp.AutorizacionUtpScreen
@@ -41,8 +40,6 @@ import com.example.explora2.viewmodel.GestionViewModel
 
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-
-
 
 sealed class Screen(val route: String) {
     // Inicio y Roles
@@ -80,7 +77,6 @@ fun AppNavigation() {
     val personalizacionViewModel: PersonalizacionViewModel = viewModel()
     val gestionViewModel: GestionViewModel = viewModel()
 
-
     NavHost(
         navController = navController,
         startDestination = Screen.SelectorPerfil.route
@@ -103,9 +99,7 @@ fun AppNavigation() {
         }
 
         // --- ESTUDIANTE (2.° BÁSICO) ---
-
         composable(Screen.PanelEstudiante.route) {
-
             val gestionEstado by gestionViewModel.estado.collectAsState()
 
             PanelAlumnoScreen(
@@ -121,22 +115,17 @@ fun AppNavigation() {
             UnidadesObjetivoScreen(navController = navController)
         }
         composable(Screen.ProgresoAlumno.route) {
-            ProgresoEstudianteScreen()
+            ProgresoEstudianteScreen(navController = navController)
+
         }
         composable(Screen.RendirPrueba.route) {
             RendirPruebaScreen(navController = navController)
         }
 
         // --- DOCENTE ---
-
         composable(Screen.PanelDocente.route) {
-
-            val gestionEstado by gestionViewModel.estado.collectAsState()
-
             PanelDocenteScreen(
-                navController = navController,
-                gestionUiState = gestionEstado,
-                onAsignarClick = gestionViewModel::asignarAlAlumno
+                navController = navController
             )
         }
 
@@ -148,7 +137,6 @@ fun AppNavigation() {
         }
 
         composable(Screen.GestionContenido.route) {
-
             val estado by gestionViewModel.estado.collectAsState()
 
             FormularioGestionScreen(
@@ -167,14 +155,12 @@ fun AppNavigation() {
             )
         }
 
-
         // --- UTP ---
         composable(Screen.PanelUtp.route) {
             PanelUtpScreen(navController = navController)
         }
 
         composable(Screen.AutorizacionUnidades.route) {
-
             val estado by gestionViewModel.estado.collectAsState()
 
             AutorizacionUtpScreen(

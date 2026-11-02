@@ -1,78 +1,87 @@
 package com.example.explora2.ui.screens.alumno
 
-import android.speech.tts.TextToSpeech
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.example.explora2.navigation.Screen
 import com.example.explora2.repository.ConfiguracionStore
+import com.example.explora2.ui.utils.Audio
 import kotlinx.coroutines.launch
-import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RendirPruebaScreen(navController: NavController) {
     val contexto = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // --- PERSISTENCIA LOCAL (Punto 3: DataStore / Caso MPAZ PRO) ---
     val configuracionStore = remember { ConfiguracionStore(contexto) }
     val intentosRestantes by configuracionStore.intentosRestantesFlow.collectAsState(initial = 2)
     val ultimoPuntaje by configuracionStore.ultimoPuntajeFlow.collectAsState(initial = 0)
 
+    val audioHelper = remember { Audio(contexto) }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            audioHelper.liberar()
+        }
+    }
+
+    RendirPruebaContent(
+        intentosRestantes = intentosRestantes,
+        ultimoPuntaje = ultimoPuntaje,
+        onVolverClick = { navController.popBackStack() },
+        onReproducirAudio = { texto -> audioHelper.hablar(texto) },
+        onGuardarIntento = { nuevosIntentos, puntaje ->
+            scope.launch {
+                configuracionStore.guardarIntentoYNota(nuevosIntentos, puntaje)
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RendirPruebaContent(
+    intentosRestantes: Int,
+    ultimoPuntaje: Int,
+    onVolverClick: () -> Unit,
+    onReproducirAudio: (String) -> Unit,
+    onGuardarIntento: (Int, Int) -> Unit
+) {
     val maximosIntentos = 2
     var respuestaSeleccionada by remember { mutableStateOf<Int?>(null) }
     var evaluacionEnviada by remember { mutableStateOf(false) }
 
-    // Sincronizar estado visual si el alumno ya rindió la prueba anteriormente
     LaunchedEffect(intentosRestantes) {
         if (intentosRestantes < maximosIntentos) {
             evaluacionEnviada = true
         }
     }
 
-    // --- SOPORTE MULTIMEDIA: TextToSpeech Nativo (Punto 1) ---
-    var tts: TextToSpeech? by remember { mutableStateOf(null) }
-
-    DisposableEffect(contexto) {
-        val instanciaTts = TextToSpeech(contexto) { estado ->
-            if (estado == TextToSpeech.SUCCESS) {
-                tts?.language = Locale("es", "CL")
-            }
-        }
-        tts = instanciaTts
-        onDispose {
-            instanciaTts.stop()
-            instanciaTts.shutdown()
-        }
-    }
-
-    fun reproducirAudio(mensaje: String) {
-        tts?.speak(mensaje, TextToSpeech.QUEUE_FLUSH, null, null)
-    }
-
     val preguntaTexto = "¿Qué personaje ayudó al león a escapar de la red?"
     val opciones = listOf("Un ratón pequeño", "Un cazador del bosque", "Un pájaro veloz")
-    val indiceCorrecto = 0 // El ratón pequeño
+    val indiceCorrecto = 0
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Prueba: Fábula y Comprensión (2.° Básico)") },
+                title = { Text("Prueba: Fábula (2.° Básico)") },
                 navigationIcon = {
-                    IconButton(onClick = { navController.navigate(Screen.PanelEstudiante.route) }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver al panel")
+                    IconButton(onClick = onVolverClick) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver al panel"
+                        )
                     }
                 }
             )
@@ -86,7 +95,7 @@ fun RendirPruebaScreen(navController: NavController) {
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Tarjeta de estado de intentos persistidos
+            // Tarjeta de estado de intentos
             Card(
                 colors = CardDefaults.cardColors(
                     containerColor = if (intentosRestantes > 0) MaterialTheme.colorScheme.primaryContainer
@@ -111,14 +120,17 @@ fun RendirPruebaScreen(navController: NavController) {
                         )
                     }
                     IconButton(onClick = {
-                        reproducirAudio("Tienes $intentosRestantes intentos restantes para realizar esta evaluación.")
+                        onReproducirAudio("Tienes $intentosRestantes intentos restantes para realizar esta evaluación.")
                     }) {
-                        Icon(Icons.Default.VolumeUp, contentDescription = "Escuchar intentos")
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.VolumeUp,
+                            contentDescription = "Escuchar intentos"
+                        )
                     }
                 }
             }
 
-            // Pregunta con apoyo de audio didáctico
+            // Pregunta con soporte auditivo
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(
@@ -131,22 +143,21 @@ fun RendirPruebaScreen(navController: NavController) {
                             style = MaterialTheme.typography.titleMedium,
                             modifier = Modifier.weight(1f)
                         )
-                        IconButton(onClick = { reproducirAudio(preguntaTexto) }) {
+                        IconButton(onClick = { onReproducirAudio(preguntaTexto) }) {
                             Icon(
-                                imageVector = Icons.Default.VolumeUp,
+                                imageVector = Icons.AutoMirrored.Filled.VolumeUp,
                                 contentDescription = "Escuchar pregunta",
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
 
-                    // Opciones de respuesta para lectores iniciales
                     opciones.forEachIndexed { indice, opcion ->
                         OutlinedButton(
                             onClick = {
                                 if (intentosRestantes > 0 && !evaluacionEnviada) {
                                     respuestaSeleccionada = indice
-                                    reproducirAudio(opcion)
+                                    onReproducirAudio(opcion)
                                 }
                             },
                             modifier = Modifier.fillMaxWidth(),
@@ -163,22 +174,20 @@ fun RendirPruebaScreen(navController: NavController) {
                 }
             }
 
-            // Botón para enviar prueba y persistir los datos
+            // Botón de entrega
             Button(
                 onClick = {
                     if (respuestaSeleccionada != null && intentosRestantes > 0) {
                         val puntaje = if (respuestaSeleccionada == indiceCorrecto) 7 else 2
                         val nuevosIntentos = intentosRestantes - 1
 
-                        scope.launch {
-                            configuracionStore.guardarIntentoYNota(nuevosIntentos, puntaje)
-                        }
+                        onGuardarIntento(nuevosIntentos, puntaje)
                         evaluacionEnviada = true
 
                         if (puntaje == 7) {
-                            reproducirAudio("¡Excelente trabajo! Respuesta correcta guardada.")
+                            onReproducirAudio("¡Excelente trabajo! Respuesta correcta guardada.")
                         } else {
-                            reproducirAudio("Respuesta incorrecta registrada. Recuerda leer con atención.")
+                            onReproducirAudio("Respuesta incorrecta registrada. Recuerda leer con atención.")
                         }
                     }
                 },
@@ -188,7 +197,7 @@ fun RendirPruebaScreen(navController: NavController) {
                 Text("Entregar y Guardar Evaluación")
             }
 
-            // Retroalimentación inmediata (Aciertos / Errores persistidos)
+            // Retroalimentación pedagógica inmediata
             if (evaluacionEnviada) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -232,5 +241,24 @@ fun RendirPruebaScreen(navController: NavController) {
                 }
             }
         }
+    }
+}
+
+@Preview(
+    name = "Vista Celular - Rendir Evaluación",
+    showBackground = true,
+    widthDp = 360,
+    heightDp = 800
+)
+@Composable
+fun RendirPruebaScreenPreview() {
+    MaterialTheme {
+        RendirPruebaContent(
+            intentosRestantes = 2,
+            ultimoPuntaje = 0,
+            onVolverClick = {},
+            onReproducirAudio = {},
+            onGuardarIntento = { _, _ -> }
+        )
     }
 }

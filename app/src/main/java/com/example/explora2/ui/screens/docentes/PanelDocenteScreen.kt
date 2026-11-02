@@ -3,16 +3,17 @@ package com.example.explora2.ui.screens.docentes
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import com.example.explora2.navigation.Screen
-import com.example.explora2.model.GestionUiState
 
-
-// Modelo de datos para las unidades y desafíos del docente
 data class UnidadDocente(
     val titulo: String,
     val objetivoAprendizaje: String,
@@ -23,14 +24,7 @@ data class UnidadDocente(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-
-fun PanelDocenteScreen(
-    navController: NavController,
-    gestionUiState: GestionUiState,
-    onAsignarClick: () -> Unit
-) {
-
-    // Estado reactivo para la gestión docente de unidades y parámetros de evaluación
+fun PanelDocenteScreen(navController: NavController? = null) {
     var unidades by remember {
         mutableStateOf(
             listOf(
@@ -55,7 +49,17 @@ fun PanelDocenteScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Panel Docente - Seguimiento 2.° Básico") }
+                title = { Text("Panel Docente - 2.° Básico") },
+                navigationIcon = {
+                    if (navController != null) {
+                        IconButton(onClick = { navController.navigate(Screen.SelectorPerfil.route) }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Volver a Selector de Perfil"
+                            )
+                        }
+                    }
+                }
             )
         }
     ) { innerPadding ->
@@ -73,59 +77,11 @@ fun PanelDocenteScreen(
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "Consulte unidades autorizadas por UTP, configure intentos y supervise el rendimiento por Objetivo de Aprendizaje (OA).",
+                    text = "Consulte unidades autorizadas por UTP, configure intentos y supervise el rendimiento por OA.",
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(top = 4.dp)
                 )
             }
-
-            item {
-                if (gestionUiState.autorizado) {
-
-                    Text(
-                        text = "Contenido autorizado por UTP",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-
-                    Text(
-                        text = "Título: ${gestionUiState.titulo}"
-                    )
-
-                    Text(
-                        text = "Asignatura: ${gestionUiState.asignatura}"
-                    )
-
-                    Text(
-                        text = "Objetivo: ${gestionUiState.objetivo}"
-                    )
-
-                    if (gestionUiState.asignadoAlumno) {
-                        Text(
-                            text = "Estado: Asignado al alumno de prueba"
-                        )
-                    } else {
-                        Button(
-                            onClick = onAsignarClick,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Asignar al alumno")
-                        }
-                    }
-                }
-            }
-
-
-            item {
-                Button(
-                    onClick = {
-                        navController.navigate(Screen.GestionContenido.route)
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Planificar Contenido Pedagógico")
-                }
-            }
-
 
             items(unidades) { unidad ->
                 Card(
@@ -148,11 +104,11 @@ fun PanelDocenteScreen(
                             color = MaterialTheme.colorScheme.secondary
                         )
 
-                        Divider(modifier = Modifier.padding(vertical = 4.dp))
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
                         Text(text = "• Disponibilidad: ${unidad.disponibilidad}")
-                        Text(text = "• Intentos máximos para la prueba final: ${unidad.intentosPermitidos}")
-                        Text(text = "• Rendimiento grupal (OA): ${unidad.rendimientoPromedio}")
+                        Text(text = "• Intentos máximos: ${unidad.intentosPermitidos}")
+                        Text(text = "• Rendimiento grupal: ${unidad.rendimientoPromedio}")
 
                         Row(
                             modifier = Modifier
@@ -162,7 +118,6 @@ fun PanelDocenteScreen(
                         ) {
                             Button(
                                 onClick = {
-                                    // Incrementar intentos permitidos como prueba de parametrización docente
                                     unidades = unidades.map {
                                         if (it == unidad) it.copy(intentosPermitidos = it.intentosPermitidos + 1) else it
                                     }
@@ -173,15 +128,29 @@ fun PanelDocenteScreen(
                             }
 
                             OutlinedButton(
-                                onClick = { /* Lógica para ver informe detallado por alumno */ },
+                                onClick = { navController?.navigate(Screen.RevisionEntregas.route) },
                                 modifier = Modifier.weight(1.5f)
                             ) {
-                                Text("Ver Informe OA")
+                                Text("Ver Evaluaciones")
                             }
                         }
                     }
                 }
             }
         }
+    }
+}
+
+@Preview(
+    name = "Vista Celular - Panel Docente",
+    showBackground = true,
+    widthDp = 360,
+    heightDp = 800
+)
+@Composable
+fun PanelDocenteScreenPreview() {
+    MaterialTheme {
+        val navController = rememberNavController()
+        PanelDocenteScreen(navController = navController)
     }
 }

@@ -3,6 +3,8 @@ package com.example.explora2.ui.screens.utp
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -13,7 +15,19 @@ import androidx.navigation.NavController
 @Composable
 fun InformeUtpScreen(navController: NavController) {
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Informe Consolidado (UTP)") }) }
+        topBar = {
+            TopAppBar(
+                title = { Text("Informe Consolidado (UTP)") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver al Panel UTP"
+                        )
+                    }
+                }
+            )
+        }
     ) { innerPadding ->
         Column(
             modifier = Modifier

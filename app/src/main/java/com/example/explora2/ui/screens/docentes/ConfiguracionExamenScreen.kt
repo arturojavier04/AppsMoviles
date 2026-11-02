@@ -3,15 +3,19 @@ package com.example.explora2.ui.screens.docentes
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ConfiguracionExamenScreen(navController: NavController) {
+fun ConfiguracionExamenScreen(navController: NavController? = null) {
     var intentosPermitidos by remember { mutableStateOf(2) }
     var fechaInicio by remember { mutableStateOf("01/11/2026") }
     var fechaFin by remember { mutableStateOf("15/11/2026") }
@@ -19,7 +23,21 @@ fun ConfiguracionExamenScreen(navController: NavController) {
     var mensajeGuardado by remember { mutableStateOf(false) }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Configuración de Prueba") }) }
+        topBar = {
+            TopAppBar(
+                title = { Text("Configuración de Prueba") },
+                navigationIcon = {
+                    if (navController != null) {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Volver"
+                            )
+                        }
+                    }
+                }
+            )
+        }
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -77,5 +95,19 @@ fun ConfiguracionExamenScreen(navController: NavController) {
                 )
             }
         }
+    }
+}
+
+@Preview(
+    name = "Vista Celular - Configuración Examen",
+    showBackground = true,
+    widthDp = 360,
+    heightDp = 800
+)
+@Composable
+fun ConfiguracionExamenScreenPreview() {
+    MaterialTheme {
+        val navController = rememberNavController()
+        ConfiguracionExamenScreen(navController = navController)
     }
 }

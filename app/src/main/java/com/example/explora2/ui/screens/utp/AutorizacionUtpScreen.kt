@@ -3,6 +3,8 @@ package com.example.explora2.ui.screens.utp
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -10,18 +12,21 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.explora2.model.GestionUiState
 
-
-data class SolicitudUnidad(val id: Int, val docente: String, val unidad: String, val descripcion: String, val aprobada: Boolean)
+data class SolicitudUnidad(
+    val id: Int,
+    val docente: String,
+    val unidad: String,
+    val descripcion: String,
+    val aprobada: Boolean
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-
 fun AutorizacionUtpScreen(
     navController: NavController,
     gestionUiState: GestionUiState,
     onAprobarClick: () -> Unit
 ) {
-
     var solicitudes by remember {
         mutableStateOf(
             listOf(
@@ -32,7 +37,19 @@ fun AutorizacionUtpScreen(
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Autorización Curricular (UTP)") }) }
+        topBar = {
+            TopAppBar(
+                title = { Text("Autorización Curricular (UTP)") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver al Panel UTP"
+                        )
+                    }
+                }
+            )
+        }
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
@@ -40,16 +57,10 @@ fun AutorizacionUtpScreen(
                 .padding(innerPadding)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
-        )
-
-
-        {
-
+        ) {
             if (gestionUiState.enviadoUtp) {
                 item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
+                    Card(modifier = Modifier.fillMaxWidth()) {
                         Column(
                             modifier = Modifier.padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -69,9 +80,7 @@ fun AutorizacionUtpScreen(
                             if (gestionUiState.autorizado) {
                                 Text("Estado: Autorizado por UTP")
                             } else {
-                                Button(
-                                    onClick = onAprobarClick
-                                ) {
+                                Button(onClick = onAprobarClick) {
                                     Text("Autorizar contenido")
                                 }
                             }
