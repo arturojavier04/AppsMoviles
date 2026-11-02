@@ -11,6 +11,9 @@ data class GestionUiState(
     val validado: Boolean = false,
     val enviadoUtp: Boolean = false,
     val autorizado: Boolean = false,
-    val asignadoAlumno: Boolean = false
+    val asignadoAlumno: Boolean = false,
+    val respuestaAlumno: String = "",
+    val errorRespuesta: String? = null,
+    val respuestaEntregada: Boolean = false
 
 )
