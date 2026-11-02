@@ -10,11 +10,11 @@ import kotlinx.coroutines.flow.update
 
 class GestionViewModel : ViewModel() {
 
-    // Estado del formulario
     private val _estado = MutableStateFlow(GestionUiState())
     val estado: StateFlow<GestionUiState> = _estado
 
-    // Actualización de cada campo
+    // Cambios de los campos del docente
+
     fun onAsignaturaChange(valor: String) {
         _estado.update {
             it.copy(
@@ -75,24 +75,8 @@ class GestionViewModel : ViewModel() {
         }
     }
 
-    fun enviarAUtp() {
-        if (_estado.value.validado) {
-            _estado.update {
-                it.copy(enviadoUtp = true)
-            }
-        }
-    }
+    // Validaciones del formulario docente
 
-    fun aprobarContenido() {
-        if (_estado.value.enviadoUtp) {
-            _estado.update {
-                it.copy(autorizado = true)
-            }
-        }
-    }
-
-
-    // Validación del formulario
     fun validarFormulario(): Boolean {
 
         val actual = _estado.value
@@ -136,6 +120,30 @@ class GestionViewModel : ViewModel() {
         return !hayErrores
     }
 
+    // Envio del contenido a UTP
+
+    fun enviarAUtp() {
+        if (_estado.value.validado &&
+            !_estado.value.enviadoUtp) {
+
+            _estado.update {
+                it.copy(enviadoUtp = true)
+            }
+        }
+    }
+
+    // Autorizacion del contenido
+
+    fun aprobarContenido() {
+        if (_estado.value.enviadoUtp) {
+            _estado.update {
+                it.copy(autorizado = true)
+            }
+        }
+    }
+
+    // Asignacion del contenido
+
     fun asignarAlAlumno() {
         if (_estado.value.autorizado) {
             _estado.update {
@@ -144,4 +152,49 @@ class GestionViewModel : ViewModel() {
         }
     }
 
+    // Actualizacion de la respuesta del alumno
+
+    fun onRespuestaAlumnoChange(valor: String) {
+
+        if (_estado.value.asignadoAlumno &&
+            !_estado.value.respuestaEntregada) {
+
+            _estado.update {
+                it.copy(
+                    respuestaAlumno = valor,
+                    errorRespuesta = null
+                )
+            }
+        }
+    }
+
+    // Entrega y validacion de la respuesta
+
+    fun entregarRespuesta() {
+
+        val actual = _estado.value
+
+        if (actual.autorizado &&
+            actual.asignadoAlumno &&
+            !actual.respuestaEntregada) {
+
+            if (actual.respuestaAlumno.isBlank()) {
+
+                _estado.update {
+                    it.copy(
+                        errorRespuesta = "Debes escribir una respuesta"
+                    )
+                }
+
+            } else {
+
+                _estado.update {
+                    it.copy(
+                        respuestaEntregada = true,
+                        errorRespuesta = null
+                    )
+                }
+            }
+        }
+    }
 }
