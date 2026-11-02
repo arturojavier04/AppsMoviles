@@ -8,22 +8,26 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun InformeUtpScreen(navController: NavController) {
+fun InformeUtpScreen(navController: NavController? = null) {
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Informe Consolidado (UTP)") },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver al Panel UTP"
-                        )
+                    if (navController != null) {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Volver al Panel UTP"
+                            )
+                        }
                     }
                 }
             )
@@ -37,7 +41,7 @@ fun InformeUtpScreen(navController: NavController) {
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text("Métricas de Rendimiento - 2.° Básico", style = MaterialTheme.typography.headlineSmall)
+            Text("Métricas de Rendimiento ", style = MaterialTheme.typography.headlineSmall)
             Text("Escuela Escritora Marcela Paz", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
 
             Card(modifier = Modifier.fillMaxWidth()) {
@@ -63,5 +67,19 @@ fun InformeUtpScreen(navController: NavController) {
                 Text("Exportar Informe Pedagógico")
             }
         }
+    }
+}
+
+@Preview(
+    name = "Vista Previa - Informe Consolidado UTP",
+    showBackground = true,
+    widthDp = 360,
+    heightDp = 800
+)
+@Composable
+fun InformeUtpScreenPreview() {
+    MaterialTheme {
+        val navController = rememberNavController()
+        InformeUtpScreen(navController = navController)
     }
 }

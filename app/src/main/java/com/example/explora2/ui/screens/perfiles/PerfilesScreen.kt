@@ -188,7 +188,7 @@ fun PerfilesContent(
                         colors = ButtonDefaults.buttonColors(containerColor = colorBotonUtp),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text("UTP", color = Color.White, fontWeight = FontWeight.Bold)
+                        Text("Jefatura", color = Color.White, fontWeight = FontWeight.Bold)
                     }
                 }
             }

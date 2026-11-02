@@ -8,8 +8,10 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import com.example.explora2.model.GestionUiState
 
 data class SolicitudUnidad(
@@ -23,9 +25,9 @@ data class SolicitudUnidad(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AutorizacionUtpScreen(
-    navController: NavController,
-    gestionUiState: GestionUiState,
-    onAprobarClick: () -> Unit
+    navController: NavController? = null,
+    gestionUiState: GestionUiState = GestionUiState(),
+    onAprobarClick: () -> Unit = {}
 ) {
     var solicitudes by remember {
         mutableStateOf(
@@ -41,11 +43,13 @@ fun AutorizacionUtpScreen(
             TopAppBar(
                 title = { Text("Autorización Curricular (UTP)") },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver al Panel UTP"
-                        )
+                    if (navController != null) {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Volver al Panel UTP"
+                            )
+                        }
                     }
                 }
             )
@@ -116,5 +120,32 @@ fun AutorizacionUtpScreen(
                 }
             }
         }
+    }
+}
+
+@Preview(
+    name = "Vista Previa - Autorización UTP",
+    showBackground = true,
+    widthDp = 360,
+    heightDp = 800
+)
+@Composable
+fun AutorizacionUtpScreenPreview() {
+    MaterialTheme {
+        val navController = rememberNavController()
+        AutorizacionUtpScreen(
+            navController = navController,
+            gestionUiState = GestionUiState(
+                enviadoUtp = true,
+                autorizado = false,
+                asignatura = "Lenguaje y Comunicación",
+                unidad = "Unidad 2",
+                objetivo = "OA 03: Lectura Fluida",
+                tipoRecurso = "Texto con Audio",
+                titulo = "Fábula del León y el Ratón",
+                descripcion = "Lectura interactiva con apoyo auditivo para segundo básico."
+            ),
+            onAprobarClick = {}
+        )
     }
 }
