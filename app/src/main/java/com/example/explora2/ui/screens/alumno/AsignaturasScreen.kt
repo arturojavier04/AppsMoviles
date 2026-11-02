@@ -16,19 +16,22 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.explora2.navigation.Screen
 
-// Sobrecarga para AppNavigation
 @Composable
 fun AsignaturasScreen(navController: NavController) {
+    fun navegarAUnidades(materia: String) {
+        navController.currentBackStackEntry?.savedStateHandle?.set("materia_seleccionada", materia)
+        navController.navigate(Screen.UnidadesObjetivos.route)
+    }
+
     AsignaturasContent(
         onVolverClick = { navController.popBackStack() },
-        onLenguajeClick = { navController.navigate(Screen.UnidadesObjetivos.route) },
-        onMatematicaClick = { navController.navigate(Screen.UnidadesObjetivos.route) },
-        onCienciasClick = { navController.navigate(Screen.UnidadesObjetivos.route) },
-        onHistoriaClick = { navController.navigate(Screen.UnidadesObjetivos.route) }
+        onLenguajeClick = { navegarAUnidades("Lenguaje") },
+        onMatematicaClick = { navegarAUnidades("Matemática") },
+        onCienciasClick = { navegarAUnidades("Ciencias") },
+        onHistoriaClick = { navegarAUnidades("Historia") }
     )
 }
 
-// Vista base con colores de tu app (Docente Azul, UTP Verde, Alumno Verde)
 @Composable
 fun AsignaturasContent(
     onVolverClick: () -> Unit,
@@ -48,7 +51,6 @@ fun AsignaturasContent(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Barra superior personalizada con botón de retorno seguro para Preview
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -74,14 +76,13 @@ fun AsignaturasContent(
             )
 
             Text(
-                text = "Elige una ramo para ver sus unidades:",
+                text = "Elige un ramo para ver sus unidades:",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
                 color = Color(0xFF475569),
                 modifier = Modifier.padding(bottom = 6.dp)
             )
 
-            // Lenguaje y Comunicación (Verde Alumno)
             TarjetaMateria(
                 emoji = "📚",
                 titulo = "Lenguaje y Comunicación",
@@ -91,7 +92,6 @@ fun AsignaturasContent(
                 onClick = onLenguajeClick
             )
 
-            // Matemática (Azul)
             TarjetaMateria(
                 emoji = "➕➖",
                 titulo = "Matemática",
@@ -101,7 +101,6 @@ fun AsignaturasContent(
                 onClick = onMatematicaClick
             )
 
-            // Ciencias Naturales (Verde Institucional)
             TarjetaMateria(
                 emoji = "🌱",
                 titulo = "Ciencias Naturales",
@@ -111,7 +110,6 @@ fun AsignaturasContent(
                 onClick = onCienciasClick
             )
 
-            // Historia y Geografía
             TarjetaMateria(
                 emoji = "🗺️",
                 titulo = "Historia y Geografía",
@@ -173,12 +171,7 @@ fun TarjetaMateria(
     }
 }
 
-@Preview(
-    name = "Vista Previa Asignaturas",
-    showBackground = true,
-    widthDp = 360,
-    heightDp = 800
-)
+@Preview(name = "Vista Previa Asignaturas", showBackground = true, widthDp = 360, heightDp = 800)
 @Composable
 fun AsignaturasScreenPreview() {
     MaterialTheme {

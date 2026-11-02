@@ -30,28 +30,33 @@ fun UnidadesObjetivoScreen(navController: NavController) {
     val listaObjetivos = listOf(
         // Matemática
         ObjetivoItem("OA 08", "Unidad 1", "Sumas y Restas hasta 100", "Resolver adiciones y sustracciones con números de dos dígitos.", "Matemática"),
-        ObjetivoItem("OA 01", "Unidad 2", "Conteo y Números", "Contar números del 0 al 1000 de 2 en 2, de 5 en 5 y de 10 en 10.", "Matemática"),
+        ObjetivoItem("OA 01", "Unidad 2", "Conteo y Patrones hasta 1000", "Contar números del 0 al 1000 de 5 en 5 y 10 en 10.", "Matemática"),
 
         // Lenguaje y Comunicación
-        ObjetivoItem("OA 03", "Unidad 1", "Lectura Fluida y Comprensión", "Leer en voz alta palabras frecuentes y comprender fábulas breves.", "Lenguaje"),
-        ObjetivoItem("OA 12", "Unidad 2", "Escritura Guiada", "Escribir oraciones legibles utilizando mayúsculas y puntos.", "Lenguaje"),
+        ObjetivoItem("OA 03", "Unidad 1", "Lectura Fluida y Fábulas", "Leer en voz alta palabras frecuentes y comprender fábulas breves.", "Lenguaje"),
+        ObjetivoItem("OA 12", "Unidad 2", "Escritura Guiada y Signos", "Escribir oraciones legibles utilizando mayúsculas y punto final.", "Lenguaje"),
 
         // Ciencias Naturales
-        ObjetivoItem("OA 01", "Unidad 1", "El Cuerpo y Hábitos Saludables", "Identificar la función de órganos vitales como el corazón y pulmones.", "Ciencias"),
-        ObjetivoItem("OA 05", "Unidad 2", "Animales y su Hábitat", "Observar e identificar animales nativos de Chile y su entorno.", "Ciencias"),
+        ObjetivoItem("OA 01", "Unidad 1", "El Cuerpo y Órganos Vitales", "Identificar la función de órganos vitales como el corazón y pulmones.", "Ciencias"),
+        ObjetivoItem("OA 05", "Unidad 2", "Animales Nativos y Hábitat", "Observar e identificar animales nativos de Chile y su entorno.", "Ciencias"),
 
         // Historia, Geografía y Cs. Sociales
         ObjetivoItem("OA 06", "Unidad 1", "Nuestra Comunidad y Servicios", "Reconocer profesiones, oficios y servicios comunitarios.", "Historia"),
-        ObjetivoItem("OA 08", "Unidad 2", "Pueblos Originarios y Paisajes", "Conocer costumbres y ubicación de los pueblos originarios de Chile.", "Historia")
+        ObjetivoItem("OA 08", "Unidad 2", "Pueblos Originarios de Chile", "Conocer costumbres y ubicación de los pueblos originarios.", "Historia")
     )
 
-    var materiaSeleccionada by remember { mutableStateOf("Lenguaje") }
+    // Recupera la materia que el usuario tocó en AsignaturasScreen (por defecto Lenguaje si no viniera nada)
+    val materiaRecibida = navController.previousBackStackEntry
+        ?.savedStateHandle
+        ?.get<String>("materia_seleccionada") ?: "Lenguaje"
+
+    var materiaSeleccionada by remember { mutableStateOf(materiaRecibida) }
     val categorias = listOf("Lenguaje", "Matemática", "Ciencias", "Historia")
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Unidades y Objetivos") },
+                title = { Text("Unidades de $materiaSeleccionada") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
@@ -71,7 +76,7 @@ fun UnidadesObjetivoScreen(navController: NavController) {
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Text(
-                text = "Selecciona una materia:",
+                text = "Materia seleccionada:",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -100,8 +105,9 @@ fun UnidadesObjetivoScreen(navController: NavController) {
                 items(unidadesFiltradas) { item ->
                     Card(
                         onClick = {
-                            // Pasa la materia exacta seleccionada para que abra su evaluación correspondiente
+                            // Pasa tanto la materia como la unidad a RendirPruebaScreen
                             navController.currentBackStackEntry?.savedStateHandle?.set("materia", item.asignatura)
+                            navController.currentBackStackEntry?.savedStateHandle?.set("unidad", item.unidad)
                             navController.navigate(Screen.RendirPrueba.route)
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -127,7 +133,7 @@ fun UnidadesObjetivoScreen(navController: NavController) {
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Toca para abrir evaluación de ${item.asignatura} ›",
+                                text = "Toca para rendir evaluación de ${item.unidad} ›",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.secondary
                             )
@@ -139,12 +145,7 @@ fun UnidadesObjetivoScreen(navController: NavController) {
     }
 }
 
-@Preview(
-    name = "Vista Celular - 4 Asignaturas",
-    showBackground = true,
-    widthDp = 360,
-    heightDp = 800
-)
+@Preview(name = "Vista Celular - 4 Asignaturas", showBackground = true, widthDp = 360, heightDp = 800)
 @Composable
 fun UnidadesObjetivoScreenPreview() {
     MaterialTheme {

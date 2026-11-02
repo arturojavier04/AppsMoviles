@@ -22,6 +22,7 @@ import kotlinx.coroutines.launch
 
 data class PreguntaEvaluacion(
     val asignatura: String,
+    val unidad: String,
     val titulo: String,
     val pregunta: String,
     val opciones: List<String>,
@@ -34,10 +35,14 @@ fun RendirPruebaScreen(navController: NavController) {
     val contexto = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // Recibe la materia desde la pantalla anterior (si viene de Matemática, arranca en Matemática)
+    // Recupera la materia y la unidad seleccionadas desde la pantalla anterior
     val materiaRecibida = navController.previousBackStackEntry
         ?.savedStateHandle
         ?.get<String>("materia") ?: "Lenguaje"
+
+    val unidadRecibida = navController.previousBackStackEntry
+        ?.savedStateHandle
+        ?.get<String>("unidad") ?: "Unidad 1"
 
     val configuracionStore = remember { ConfiguracionStore(contexto) }
     val intentosRestantes by configuracionStore.intentosRestantesFlow.collectAsState(initial = 2)
@@ -53,6 +58,7 @@ fun RendirPruebaScreen(navController: NavController) {
 
     RendirPruebaContent(
         materiaInicial = materiaRecibida,
+        unidadInicial = unidadRecibida,
         intentosRestantes = intentosRestantes,
         ultimoPuntaje = ultimoPuntaje,
         onVolverClick = { navController.popBackStack() },
@@ -69,6 +75,7 @@ fun RendirPruebaScreen(navController: NavController) {
 @Composable
 fun RendirPruebaContent(
     materiaInicial: String = "Lenguaje",
+    unidadInicial: String = "Unidad 1",
     intentosRestantes: Int,
     ultimoPuntaje: Int,
     onVolverClick: () -> Unit,
@@ -77,44 +84,96 @@ fun RendirPruebaContent(
 ) {
     val maximosIntentos = 2
 
+    // Banco curricular completo: 8 evaluaciones (Unidad 1 y Unidad 2 por asignatura)
     val evaluaciones = listOf(
+        // LENGUAJE
         PreguntaEvaluacion(
             asignatura = "Lenguaje",
-            titulo = "Evaluación: Lenguaje (Fábula)",
+            unidad = "Unidad 1",
+            titulo = "Lenguaje - Unidad 1: Fábula",
             pregunta = "¿Qué personaje ayudó al león a escapar de la red?",
             opciones = listOf("Un ratón pequeño", "Un cazador del bosque", "Un pájaro veloz"),
             respuestaCorrecta = 0,
-            explicacion = "El ratón pequeño ayudó royendo la cuerda de la red con sus dientes."
+            explicacion = "El ratón royó la red con sus dientes para salvar al león."
         ),
         PreguntaEvaluacion(
+            asignatura = "Lenguaje",
+            unidad = "Unidad 2",
+            titulo = "Lenguaje - Unidad 2: Escritura y Puntuación",
+            pregunta = "¿Con qué tipo de letra se debe comenzar siempre una oración?",
+            opciones = listOf("Con letra minúscula", "Con letra mayúscula", "Con un número"),
+            respuestaCorrecta = 1,
+            explicacion = "Toda oración comienza con mayúscula y termina con punto final."
+        ),
+
+        // MATEMÁTICA
+        PreguntaEvaluacion(
             asignatura = "Matemática",
-            titulo = "Evaluación: Matemática (Sumas)",
+            unidad = "Unidad 1",
+            titulo = "Matemática - Unidad 1: Sumas hasta 100",
             pregunta = "¿Cuánto es 35 + 24?",
             opciones = listOf("49", "59", "61"),
             respuestaCorrecta = 1,
             explicacion = "35 más 24 es igual a 59 (30 + 20 = 50, y 5 + 4 = 9)."
         ),
         PreguntaEvaluacion(
+            asignatura = "Matemática",
+            unidad = "Unidad 2",
+            titulo = "Matemática - Unidad 2: Conteo y Patrones",
+            pregunta = "Si contamos de 10 en 10: 20, 30, 40... ¿qué número viene después?",
+            opciones = listOf("45", "50", "60"),
+            respuestaCorrecta = 1,
+            explicacion = "Siguiendo el patrón de 10 en 10, después del 40 viene el 50."
+        ),
+
+        // CIENCIAS
+        PreguntaEvaluacion(
             asignatura = "Ciencias",
-            titulo = "Evaluación: Ciencias Naturales",
-            pregunta = "¿Qué órgano bombea sangre a todo el cuerpo?",
+            unidad = "Unidad 1",
+            titulo = "Ciencias - Unidad 1: Órganos del Cuerpo",
+            pregunta = "¿Qué órgano bombea sangre a todo nuestro cuerpo?",
             opciones = listOf("El estómago", "Los pulmones", "El corazón"),
             respuestaCorrecta = 2,
-            explicacion = "El corazón bombea sangre para llevar oxígeno y energía a todo el cuerpo."
+            explicacion = "El corazón bombea sangre llevando oxígeno a todo el cuerpo."
+        ),
+        PreguntaEvaluacion(
+            asignatura = "Ciencias",
+            unidad = "Unidad 2",
+            titulo = "Ciencias - Unidad 2: Animales de Chile",
+            pregunta = "¿Cuál de estos animales es un ave nativa de la cordillera chilena?",
+            opciones = listOf("El Cóndor", "El León", "El Canguro"),
+            respuestaCorrecta = 0,
+            explicacion = "El cóndor es un ave emblemática que habita la cordillera de los Andes."
+        ),
+
+        // HISTORIA
+        PreguntaEvaluacion(
+            asignatura = "Historia",
+            unidad = "Unidad 1",
+            titulo = "Historia - Unidad 1: Servicios de la Comunidad",
+            pregunta = "¿Qué institución voluntaria ayuda a apagar incendios en la comunidad?",
+            opciones = listOf("Los Bomberos", "El Hospital", "La Biblioteca"),
+            respuestaCorrecta = 0,
+            explicacion = "Los bomberos asisten y protegen a la comunidad ante incendios y rescates."
         ),
         PreguntaEvaluacion(
             asignatura = "Historia",
-            titulo = "Evaluación: Historia y Sociedad",
-            pregunta = "¿Qué institución ayuda a apagar incendios en la comunidad?",
-            opciones = listOf("Bomberos", "El hospital", "La biblioteca"),
+            unidad = "Unidad 2",
+            titulo = "Historia - Unidad 2: Pueblos Originarios",
+            pregunta = "¿Qué pueblo originario navegaba en canoas por los canales del sur de Chile?",
+            opciones = listOf("Los Chonos y Yaganes", "Los Mayas", "Los Aztecas"),
             respuestaCorrecta = 0,
-            explicacion = "Los bomberos asisten y protegen a la comunidad frente a incendios."
+            explicacion = "Los pueblos canoeros como los Yaganes recorrían los canales australes de Chile."
         )
     )
 
-    // Se posiciona automáticamente en la materia tocada
     var materiaActiva by remember { mutableStateOf(materiaInicial) }
-    val evaluacionActual = evaluaciones.firstOrNull { it.asignatura == materiaActiva } ?: evaluaciones.first()
+    var unidadActiva by remember { mutableStateOf(unidadInicial) }
+
+    // Busca la evaluación exacta que coincida con materia y unidad
+    val evaluacionActual = evaluaciones.firstOrNull {
+        it.asignatura == materiaActiva && it.unidad == unidadActiva
+    } ?: evaluaciones.firstOrNull { it.asignatura == materiaActiva } ?: evaluaciones.first()
 
     var respuestaSeleccionada by remember { mutableStateOf<Int?>(null) }
     var evaluacionEnviada by remember { mutableStateOf(false) }
@@ -143,28 +202,32 @@ fun RendirPruebaContent(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Selector horizontal (permite cambiar a otra materia si el alumno lo desea)
-            Text(text = "Asignatura activa:", style = MaterialTheme.typography.labelLarge)
+            // Selector horizontal para cambiar de unidad dentro de la misma pantalla
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                listOf("Lenguaje", "Matemática", "Ciencias", "Historia").forEach { materia ->
-                    FilterChip(
-                        selected = materiaActiva == materia,
-                        onClick = {
-                            materiaActiva = materia
-                            respuestaSeleccionada = null
-                            evaluacionEnviada = false
-                        },
-                        label = { Text(materia) }
-                    )
-                }
+                FilterChip(
+                    selected = unidadActiva == "Unidad 1",
+                    onClick = {
+                        unidadActiva = "Unidad 1"
+                        respuestaSeleccionada = null
+                        evaluacionEnviada = false
+                    },
+                    label = { Text("Unidad 1") }
+                )
+                FilterChip(
+                    selected = unidadActiva == "Unidad 2",
+                    onClick = {
+                        unidadActiva = "Unidad 2"
+                        respuestaSeleccionada = null
+                        evaluacionEnviada = false
+                    },
+                    label = { Text("Unidad 2") }
+                )
             }
 
-            // Tarjeta de Intentos
+            // Tarjeta de estado de intentos
             Card(
                 colors = CardDefaults.cardColors(
                     containerColor = if (intentosRestantes > 0) MaterialTheme.colorScheme.primaryContainer
@@ -189,7 +252,7 @@ fun RendirPruebaContent(
                         )
                     }
                     IconButton(onClick = {
-                        onReproducirAudio("Tienes $intentosRestantes intentos restantes para responder.")
+                        onReproducirAudio("Tienes $intentosRestantes intentos restantes para responder esta evaluación.")
                     }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.VolumeUp,
@@ -199,7 +262,7 @@ fun RendirPruebaContent(
                 }
             }
 
-            // Pregunta y opciones
+            // Pregunta con soporte auditivo
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(
@@ -267,7 +330,7 @@ fun RendirPruebaContent(
                 Text("Entregar y Guardar Evaluación")
             }
 
-            // Retroalimentación
+            // Retroalimentación pedagógica inmediata
             if (evaluacionEnviada) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -311,17 +374,13 @@ fun RendirPruebaContent(
     }
 }
 
-@Preview(
-    name = "Vista Celular - Rendir Evaluación Dinámica",
-    showBackground = true,
-    widthDp = 360,
-    heightDp = 800
-)
+@Preview(name = "Vista Celular - Rendir Evaluación", showBackground = true, widthDp = 360, heightDp = 800)
 @Composable
 fun RendirPruebaScreenPreview() {
     MaterialTheme {
         RendirPruebaContent(
-            materiaInicial = "Lenguaje",
+            materiaInicial = "Matemática",
+            unidadInicial = "Unidad 2",
             intentosRestantes = 2,
             ultimoPuntaje = 0,
             onVolverClick = {},
