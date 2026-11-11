@@ -31,11 +31,13 @@ data class PreguntaEvaluacion(
 )
 
 @Composable
-fun RendirPruebaScreen(navController: NavController) {
+fun RendirPruebaScreen(
+    navController: NavController,
+    onEntregaDocente: ((titulo: String, asignatura: String, unidad: String, nota: String, respuesta: String) -> Unit)? = null
+) {
     val contexto = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // Recupera la materia y la unidad seleccionadas desde la pantalla anterior
     val materiaRecibida = navController.previousBackStackEntry
         ?.savedStateHandle
         ?.get<String>("materia") ?: "Lenguaje"
@@ -67,7 +69,8 @@ fun RendirPruebaScreen(navController: NavController) {
             scope.launch {
                 configuracionStore.guardarIntentoYNota(nuevosIntentos, puntaje)
             }
-        }
+        },
+        onEntregaDocente = onEntregaDocente
     )
 }
 
@@ -80,11 +83,11 @@ fun RendirPruebaContent(
     ultimoPuntaje: Int,
     onVolverClick: () -> Unit,
     onReproducirAudio: (String) -> Unit,
-    onGuardarIntento: (Int, Int) -> Unit
+    onGuardarIntento: (Int, Int) -> Unit,
+    onEntregaDocente: ((String, String, String, String, String) -> Unit)? = null
 ) {
     val maximosIntentos = 2
 
-    // Banco curricular completo: 8 evaluaciones (Unidad 1 y Unidad 2 por asignatura)
     val evaluaciones = listOf(
         // LENGUAJE
         PreguntaEvaluacion(
@@ -170,7 +173,6 @@ fun RendirPruebaContent(
     var materiaActiva by remember { mutableStateOf(materiaInicial) }
     var unidadActiva by remember { mutableStateOf(unidadInicial) }
 
-    // Busca la evaluación exacta que coincida con materia y unidad
     val evaluacionActual = evaluaciones.firstOrNull {
         it.asignatura == materiaActiva && it.unidad == unidadActiva
     } ?: evaluaciones.firstOrNull { it.asignatura == materiaActiva } ?: evaluaciones.first()
@@ -202,7 +204,6 @@ fun RendirPruebaContent(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Selector horizontal para cambiar de unidad dentro de la misma pantalla
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -227,7 +228,6 @@ fun RendirPruebaContent(
                 )
             }
 
-            // Tarjeta de estado de intentos
             Card(
                 colors = CardDefaults.cardColors(
                     containerColor = if (intentosRestantes > 0) MaterialTheme.colorScheme.primaryContainer
@@ -262,7 +262,6 @@ fun RendirPruebaContent(
                 }
             }
 
-            // Pregunta con soporte auditivo
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(
@@ -306,7 +305,7 @@ fun RendirPruebaContent(
                 }
             }
 
-            // Botón de entrega
+            // BOTÓN DE ENTREGA QUE ENVÍA LOS 5 PARÁMETROS AL DOCENTE
             Button(
                 onClick = {
                     if (respuestaSeleccionada != null && intentosRestantes > 0) {
@@ -316,6 +315,17 @@ fun RendirPruebaContent(
 
                         onGuardarIntento(nuevosIntentos, notaCalculada)
                         evaluacionEnviada = true
+
+                        val textoOpcionElegida = evaluacionActual.opciones[respuestaSeleccionada!!]
+
+                        // Pasa: titulo, asignatura, unidad, nota y respuesta seleccionada
+                        onEntregaDocente?.invoke(
+                            evaluacionActual.titulo,
+                            evaluacionActual.asignatura,
+                            evaluacionActual.unidad,
+                            "$notaCalculada/7 puntos",
+                            textoOpcionElegida
+                        )
 
                         if (esCorrecto) {
                             onReproducirAudio("¡Excelente! Respuesta correcta. Obtuviste siete puntos.")
@@ -330,7 +340,6 @@ fun RendirPruebaContent(
                 Text("Entregar y Guardar Evaluación")
             }
 
-            // Retroalimentación pedagógica inmediata
             if (evaluacionEnviada) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -379,8 +388,8 @@ fun RendirPruebaContent(
 fun RendirPruebaScreenPreview() {
     MaterialTheme {
         RendirPruebaContent(
-            materiaInicial = "Matemática",
-            unidadInicial = "Unidad 2",
+            materiaInicial = "Lenguaje",
+            unidadInicial = "Unidad 1",
             intentosRestantes = 2,
             ultimoPuntaje = 0,
             onVolverClick = {},

@@ -1,4 +1,3 @@
-
 package com.example.explora2.viewmodel
 
 import androidx.lifecycle.ViewModel
@@ -78,27 +77,15 @@ class GestionViewModel : ViewModel() {
     // Validaciones del formulario docente
 
     fun validarFormulario(): Boolean {
-
         val actual = _estado.value
 
         val errores = GestionErrores(
-            asignatura = if (actual.asignatura.isBlank())
-                "Campo obligatorio" else null,
-
-            unidad = if (actual.unidad.isBlank())
-                "Campo obligatorio" else null,
-
-            objetivo = if (actual.objetivo.isBlank())
-                "Campo obligatorio" else null,
-
-            tipoRecurso = if (actual.tipoRecurso.isBlank())
-                "Campo obligatorio" else null,
-
-            titulo = if (actual.titulo.isBlank())
-                "Campo obligatorio" else null,
-
-            descripcion = if (actual.descripcion.isBlank())
-                "Campo obligatorio" else null
+            asignatura = if (actual.asignatura.isBlank()) "Campo obligatorio" else null,
+            unidad = if (actual.unidad.isBlank()) "Campo obligatorio" else null,
+            objetivo = if (actual.objetivo.isBlank()) "Campo obligatorio" else null,
+            tipoRecurso = if (actual.tipoRecurso.isBlank()) "Campo obligatorio" else null,
+            titulo = if (actual.titulo.isBlank()) "Campo obligatorio" else null,
+            descripcion = if (actual.descripcion.isBlank()) "Campo obligatorio" else null
         )
 
         val hayErrores = listOfNotNull(
@@ -121,80 +108,66 @@ class GestionViewModel : ViewModel() {
     }
 
     // Envio del contenido a UTP
-
     fun enviarAUtp() {
-        if (_estado.value.validado &&
-            !_estado.value.enviadoUtp) {
-
-            _estado.update {
-                it.copy(enviadoUtp = true)
-            }
+        _estado.update {
+            it.copy(enviadoUtp = true)
         }
     }
 
-    // Autorizacion del contenido
-
+    // Autorizacion del contenido por UTP (habilita directamente al alumno)
     fun aprobarContenido() {
-        if (_estado.value.enviadoUtp) {
-            _estado.update {
-                it.copy(autorizado = true)
-            }
+        _estado.update {
+            it.copy(
+                enviadoUtp = true,
+                autorizado = true,
+                asignadoAlumno = true
+            )
         }
     }
 
-    // Asignacion del contenido
-
+    // Asignacion del contenido al estudiante (garantiza que ambos queden en true)
     fun asignarAlAlumno() {
-        if (_estado.value.autorizado) {
-            _estado.update {
-                it.copy(asignadoAlumno = true)
-            }
+        _estado.update {
+            it.copy(
+                autorizado = true,
+                asignadoAlumno = true
+            )
         }
     }
 
     // Actualizacion de la respuesta del alumno
-
     fun onRespuestaAlumnoChange(valor: String) {
+        _estado.update {
+            it.copy(
+                respuestaAlumno = valor,
+                errorRespuesta = null
+            )
+        }
+    }
 
-        if (_estado.value.asignadoAlumno &&
-            !_estado.value.respuestaEntregada) {
+    // Entrega y validacion de la respuesta
+    fun entregarRespuesta() {
+        val actual = _estado.value
 
+        if (actual.respuestaAlumno.isBlank()) {
+            _estado.update {
+                it.copy(errorRespuesta = "Debes escribir una respuesta")
+            }
+        } else {
             _estado.update {
                 it.copy(
-                    respuestaAlumno = valor,
+                    respuestaEntregada = true,
                     errorRespuesta = null
                 )
             }
         }
     }
 
-    // Entrega y validacion de la respuesta
-
-    fun entregarRespuesta() {
-
-        val actual = _estado.value
-
-        if (actual.autorizado &&
-            actual.asignadoAlumno &&
-            !actual.respuestaEntregada) {
-
-            if (actual.respuestaAlumno.isBlank()) {
-
-                _estado.update {
-                    it.copy(
-                        errorRespuesta = "Debes escribir una respuesta"
-                    )
-                }
-
-            } else {
-
-                _estado.update {
-                    it.copy(
-                        respuestaEntregada = true,
-                        errorRespuesta = null
-                    )
-                }
-            }
+    // Reinicia el formulario para redactar una nueva planificacion
+    fun nuevaPlanificacion() {
+        _estado.update {
+            GestionUiState()
         }
     }
+
 }

@@ -22,6 +22,12 @@ data class SolicitudUnidad(
     val aprobada: Boolean
 )
 
+// Repositorio en memoria persistente durante la sesión de la app
+private val estadoSolicitudesGlobales = mutableStateListOf(
+    SolicitudUnidad(1, "Prof. Andrea Campos", "Unidad 2 - Fábulas", "Lectura y audio de apoyo", false),
+    SolicitudUnidad(2, "Prof. Roberto Vidal", "Unidad 1 - Vocabulario", "Guías visuales de palabras", true)
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AutorizacionUtpScreen(
@@ -29,15 +35,6 @@ fun AutorizacionUtpScreen(
     gestionUiState: GestionUiState = GestionUiState(),
     onAprobarClick: () -> Unit = {}
 ) {
-    var solicitudes by remember {
-        mutableStateOf(
-            listOf(
-                SolicitudUnidad(1, "Prof. Andrea Campos", "Unidad 2 - Fabulas", "Lectura y audio de apoyo", false),
-                SolicitudUnidad(2, "Prof. Roberto Vidal", "Unidad 1 - Vocabulario", "Guías visuales de palabras", true)
-            )
-        )
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -60,32 +57,55 @@ fun AutorizacionUtpScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
+            // TARJETA DE LO QUE CREÓ Y ENVIÓ EL DOCENTE EN TIEMPO REAL
             if (gestionUiState.enviadoUtp) {
                 item {
-                    Card(modifier = Modifier.fillMaxWidth()) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (gestionUiState.autorizado) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.secondaryContainer
+                        )
+                    ) {
                         Column(
                             modifier = Modifier.padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Text(
-                                text = "Solicitud enviada por docente",
-                                style = MaterialTheme.typography.titleMedium
+                                text = "📌 Solicitud Reciente del Docente",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.primary
                             )
 
-                            Text("Asignatura: ${gestionUiState.asignatura}")
-                            Text("Unidad: ${gestionUiState.unidad}")
-                            Text("Objetivo: ${gestionUiState.objetivo}")
-                            Text("Tipo de recurso: ${gestionUiState.tipoRecurso}")
-                            Text("Título: ${gestionUiState.titulo}")
-                            Text("Descripción: ${gestionUiState.descripcion}")
+                            Text(text = "Título: ${gestionUiState.titulo}", style = MaterialTheme.typography.titleSmall)
+                            Text(text = "Asignatura: ${gestionUiState.asignatura}")
+                            Text(text = "Unidad: ${gestionUiState.unidad}")
+                            Text(text = "Objetivo: ${gestionUiState.objetivo}")
+                            Text(text = "Recurso: ${gestionUiState.tipoRecurso}")
+                            Text(text = "Instrucción: ${gestionUiState.descripcion}")
+
+                            Spacer(modifier = Modifier.height(4.dp))
 
                             if (gestionUiState.autorizado) {
-                                Text("Estado: Autorizado por UTP")
+                                Surface(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    shape = MaterialTheme.shapes.small
+                                ) {
+                                    Text(
+                                        text = "✓ Contenido Autorizado para el Curso",
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                    )
+                                }
                             } else {
-                                Button(onClick = onAprobarClick) {
-                                    Text("Autorizar contenido")
+                                Button(
+                                    onClick = onAprobarClick,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("Autorizar contenido para Docente y Alumno")
                                 }
                             }
                         }
@@ -93,28 +113,43 @@ fun AutorizacionUtpScreen(
                 }
             }
 
-            items(solicitudes) { item ->
+            item {
+                Text(
+                    text = "Otras solicitudes curriculares",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.outline
+                )
+            }
+
+            // LISTADO DE SOLICITUDES CON ESTADO PERSISTENTE EN LA SESIÓN
+            items(estadoSolicitudesGlobales) { item ->
                 Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(16.dp)) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
                         Text(text = item.unidad, style = MaterialTheme.typography.titleMedium)
                         Text(text = "Docente: ${item.docente}", style = MaterialTheme.typography.bodySmall)
-                        Spacer(modifier = Modifier.height(4.dp))
                         Text(text = item.descripcion, style = MaterialTheme.typography.bodyMedium)
-                        Spacer(modifier = Modifier.height(12.dp))
 
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            if (!item.aprobada) {
-                                Button(onClick = {
-                                    solicitudes = solicitudes.map { if (it.id == item.id) it.copy(aprobada = true) else it }
-                                }) {
-                                    Text("Aprobar para Estudiantes")
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        if (!item.aprobada) {
+                            Button(
+                                onClick = {
+                                    val index = estadoSolicitudesGlobales.indexOfFirst { it.id == item.id }
+                                    if (index != -1) {
+                                        estadoSolicitudesGlobales[index] = item.copy(aprobada = true)
+                                    }
                                 }
-                            } else {
-                                AssistChip(
-                                    onClick = { },
-                                    label = { Text("Unidad Autorizada ✓") }
-                                )
+                            ) {
+                                Text("Aprobar para Estudiantes")
                             }
+                        } else {
+                            AssistChip(
+                                onClick = { },
+                                label = { Text("Unidad Autorizada ✓") }
+                            )
                         }
                     }
                 }
@@ -123,12 +158,7 @@ fun AutorizacionUtpScreen(
     }
 }
 
-@Preview(
-    name = "Vista Previa - Autorización UTP",
-    showBackground = true,
-    widthDp = 360,
-    heightDp = 800
-)
+@Preview(name = "Vista Celular - Autorización UTP", showBackground = true, widthDp = 360, heightDp = 800)
 @Composable
 fun AutorizacionUtpScreenPreview() {
     MaterialTheme {

@@ -1,4 +1,3 @@
-
 package com.example.explora2.navigation
 
 import androidx.compose.runtime.Composable
@@ -122,7 +121,6 @@ fun AppNavigation() {
         // ALUMNO
 
         composable(Screen.PanelEstudiante.route) {
-
             val estado by gestionViewModel.estado.collectAsState()
 
             PanelAlumnoScreen(
@@ -146,16 +144,24 @@ fun AppNavigation() {
         }
 
         composable(Screen.RendirPrueba.route) {
-            RendirPruebaScreen(navController = navController)
+            RendirPruebaScreen(
+                navController = navController,
+                onEntregaDocente = { titulo, asignatura, unidad, nota, respuesta ->
+                    gestionViewModel.onTituloChange(titulo)
+                    gestionViewModel.onAsignaturaChange(asignatura)
+                    gestionViewModel.onUnidadChange(unidad)
+                    gestionViewModel.onObjetivoChange("Evaluación Formativa Oficial")
+                    gestionViewModel.onRespuestaAlumnoChange("Alternativa seleccionada: \"$respuesta\" — Calificación obtenida: $nota")
+                    gestionViewModel.entregarRespuesta()
+                }
+            )
         }
 
         // Actividad asignada por el docente
         composable(Screen.ActividadAsignada.route) {
-
             val estado by gestionViewModel.estado.collectAsState()
 
             if (estado.autorizado && estado.asignadoAlumno) {
-
                 ActividadLecturaScreen(
                     titulo = estado.titulo,
                     instrucciones = estado.descripcion,
@@ -170,9 +176,7 @@ fun AppNavigation() {
                         navController.popBackStack()
                     }
                 )
-
             } else {
-
                 Text("No tienes una actividad asignada.")
             }
         }
@@ -180,7 +184,6 @@ fun AppNavigation() {
         // DOCENTE
 
         composable(Screen.PanelDocente.route) {
-
             val estado by gestionViewModel.estado.collectAsState()
 
             PanelDocenteScreen(
@@ -197,7 +200,6 @@ fun AppNavigation() {
         }
 
         composable(Screen.RevisionEntregas.route) {
-
             val estado by gestionViewModel.estado.collectAsState()
 
             RevisionEntregasScreen(
@@ -207,10 +209,10 @@ fun AppNavigation() {
         }
 
         composable(Screen.GestionContenido.route) {
-
             val estado by gestionViewModel.estado.collectAsState()
 
             FormularioGestionScreen(
+                navController = navController,
                 uiState = estado,
                 errores = estado.errores,
                 onAsignaturaChange =
@@ -229,7 +231,8 @@ fun AppNavigation() {
                     gestionViewModel::enviarAUtp,
                 onGuardarClick = {
                     gestionViewModel.validarFormulario()
-                }
+                },
+                onNuevaPlanificacionClick = gestionViewModel::nuevaPlanificacion
             )
         }
 
@@ -240,7 +243,6 @@ fun AppNavigation() {
         }
 
         composable(Screen.AutorizacionUnidades.route) {
-
             val estado by gestionViewModel.estado.collectAsState()
 
             AutorizacionUtpScreen(
