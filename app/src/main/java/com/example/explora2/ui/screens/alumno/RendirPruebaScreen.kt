@@ -1,5 +1,6 @@
 package com.example.explora2.ui.screens.alumno
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -13,6 +14,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -33,7 +35,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.explora2.navigation.Screen
 import com.example.explora2.repository.ConfiguracionStore
+import com.example.explora2.ui.components.BarraNavegacionInferior
+import com.example.explora2.ui.components.BarraNavegacionInferiorContent
 import com.example.explora2.ui.components.IconoLibroInfantil
 import com.example.explora2.ui.components.IconoTrofeoInfantil
 import com.example.explora2.ui.utils.Audio
@@ -94,7 +99,13 @@ fun RendirPruebaScreen(
                 configuracionStore.guardarIntentoYNota(nuevosIntentos, puntaje)
             }
         },
-        onEntregaDocente = onEntregaDocente
+        onEntregaDocente = onEntregaDocente,
+        bottomBar = {
+            BarraNavegacionInferior(
+                navController = navController,
+                rutaActual = Screen.Asignaturas.route
+            )
+        }
     )
 }
 
@@ -109,7 +120,10 @@ fun RendirPruebaContent(
     onReproducirAudio: (String) -> Unit,
     onVibrarError: () -> Unit = {},
     onGuardarIntento: (Int, Int) -> Unit,
-    onEntregaDocente: ((String, String, String, String, String) -> Unit)? = null
+    onEntregaDocente: ((String, String, String, String, String) -> Unit)? = null,
+    bottomBar: @Composable () -> Unit = {
+        BarraNavegacionInferiorContent(rutaActual = Screen.Asignaturas.route)
+    }
 ) {
     val maximosIntentos = 2
 
@@ -221,8 +235,8 @@ fun RendirPruebaContent(
                         .background(
                             brush = Brush.horizontalGradient(
                                 colors = listOf(
-                                    Color(0xFFFF7043),
-                                    Color(0xFFFFB300)
+                                    Color(0xFFFF7043), // Coral alegre
+                                    Color(0xFFFFB300)  // Amarillo sol
                                 )
                             )
                         )
@@ -250,7 +264,7 @@ fun RendirPruebaContent(
                                         color = Color.White
                                     )
                                     Text(
-                                        text = evaluacionActual.titulo,
+                                        text = "${evaluacionActual.titulo} · 2.° Básico",
                                         fontWeight = FontWeight.SemiBold,
                                         fontSize = 12.sp,
                                         color = Color(0xFFFFF8E1)
@@ -275,13 +289,40 @@ fun RendirPruebaContent(
                                 )
                             }
                         },
+                        actions = {
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = Color.White.copy(alpha = 0.92f),
+                                modifier = Modifier.padding(end = 12.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Star,
+                                        contentDescription = null,
+                                        tint = Color(0xFFFFA000),
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Text(
+                                        text = "7 pts",
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 13.sp,
+                                        color = Color(0xFFE65100)
+                                    )
+                                }
+                            }
+                        },
                         colors = TopAppBarDefaults.topAppBarColors(
                             containerColor = Color.Transparent
                         )
                     )
                 }
             }
-        }
+        },
+        bottomBar = bottomBar
     ) { espacioInterior ->
         Column(
             modifier = Modifier
@@ -307,15 +348,15 @@ fun RendirPruebaContent(
                         },
                         shape = RoundedCornerShape(16.dp),
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Color(0xFF29B6F6),
+                            selectedContainerColor = Color(0xFFFF7043),
                             selectedLabelColor = Color.White,
                             containerColor = Color.White,
-                            labelColor = Color(0xFF0277BD)
+                            labelColor = Color(0xFFE65100)
                         ),
                         border = FilterChipDefaults.filterChipBorder(
                             enabled = true,
                             selected = seleccionada,
-                            borderColor = Color(0xFF29B6F6),
+                            borderColor = Color(0xFFFF9800),
                             borderWidth = 2.dp
                         ),
                         label = {
@@ -438,8 +479,6 @@ fun RendirPruebaContent(
 
                     HorizontalDivider(color = Color(0xFFFFE0B2))
 
-                    HorizontalDivider(color = Color(0xFFB3E5FC))
-
                     // Opciones didácticas: Letra (A/B/C) + Texto + Personaje Kawaii de la opción
                     evaluacionActual.opciones.forEachIndexed { indice, opcion ->
                         val estaSeleccionada = respuestaSeleccionada == indice
@@ -455,13 +494,13 @@ fun RendirPruebaContent(
                                 .heightIn(min = 68.dp),
                             shape = RoundedCornerShape(22.dp),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                            border = androidx.compose.foundation.BorderStroke(
+                            border = BorderStroke(
                                 width = if (estaSeleccionada) 3.dp else 2.dp,
-                                color = if (estaSeleccionada) Color(0xFF8E24AA) else Color(0xFF90CAF9)
+                                color = if (estaSeleccionada) Color(0xFF8E24AA) else Color(0xFFFFB74D)
                             ),
                             colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = if (estaSeleccionada) Color(0xFFF3E5F5) else Color(0xFFF8FDFF),
-                                contentColor = Color(0xFF1A237E)
+                                containerColor = if (estaSeleccionada) Color(0xFFF3E5F5) else Color(0xFFFFFBF2),
+                                contentColor = Color(0xFF3E2723)
                             ),
                             enabled = intentosRestantes > 0 && !evaluacionEnviada
                         ) {
@@ -476,7 +515,7 @@ fun RendirPruebaContent(
                                         .size(32.dp)
                                         .clip(CircleShape)
                                         .background(
-                                            if (estaSeleccionada) Color(0xFF8E24AA) else Color(0xFF29B6F6)
+                                            if (estaSeleccionada) Color(0xFF8E24AA) else Color(0xFFFF9800)
                                         ),
                                     contentAlignment = Alignment.Center
                                 ) {
@@ -504,7 +543,7 @@ fun RendirPruebaContent(
                                         .background(Color.White)
                                         .border(
                                             width = 2.dp,
-                                            color = if (estaSeleccionada) Color(0xFFAB47BC) else Color(0xFFBBDEFB),
+                                            color = if (estaSeleccionada) Color(0xFFAB47BC) else Color(0xFFFFCC80),
                                             shape = CircleShape
                                         ),
                                     contentAlignment = Alignment.Center
@@ -715,15 +754,12 @@ private fun DibujoRatonKawaii(modifier: Modifier) {
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
-        // Orejas redondas grises y rosadas
         drawCircle(color = Color(0xFF90A4AE), radius = w * 0.19f, center = Offset(w * 0.24f, h * 0.30f))
         drawCircle(color = Color(0xFFF8BBD0), radius = w * 0.11f, center = Offset(w * 0.24f, h * 0.30f))
         drawCircle(color = Color(0xFF90A4AE), radius = w * 0.19f, center = Offset(w * 0.76f, h * 0.30f))
         drawCircle(color = Color(0xFFF8BBD0), radius = w * 0.11f, center = Offset(w * 0.76f, h * 0.30f))
-        // Carita
         drawCircle(color = Color(0xFFB0BEC5), radius = w * 0.33f, center = Offset(w * 0.50f, h * 0.56f))
         drawCircle(color = Color(0xFF455A64), radius = w * 0.33f, center = Offset(w * 0.50f, h * 0.56f), style = Stroke(w * 0.04f))
-        // Naricita rosada
         drawCircle(color = Color(0xFFEC407A), radius = w * 0.055f, center = Offset(w * 0.50f, h * 0.62f))
         dibujarCaritaMini(w * 0.50f, h * 0.54f, w * 0.21f)
     }
@@ -735,7 +771,6 @@ private fun DibujoPajaroKawaii(modifier: Modifier) {
         val w = size.width
         val h = size.height
 
-        // 1. Patitas naranjas abajo
         drawLine(
             color = Color(0xFFEF6C00),
             start = Offset(w * 0.40f, h * 0.78f),
@@ -751,7 +786,6 @@ private fun DibujoPajaroKawaii(modifier: Modifier) {
             cap = StrokeCap.Round
         )
 
-        // 2. Alitas laterales desplegadas (izquierda y derecha)
         val alaIzq = Path().apply {
             moveTo(w * 0.25f, h * 0.46f)
             quadraticTo(w * 0.04f, h * 0.34f, w * 0.14f, h * 0.62f)
@@ -768,7 +802,6 @@ private fun DibujoPajaroKawaii(modifier: Modifier) {
         drawPath(alaDer, Color(0xFF0288D1))
         drawPath(alaDer, Color(0xFF01579B), style = Stroke(w * 0.035f))
 
-        // 3. Plumitas / cresta en la cabeza
         drawOval(
             color = Color(0xFF29B6F6),
             topLeft = Offset(w * 0.42f, h * 0.10f),
@@ -780,7 +813,6 @@ private fun DibujoPajaroKawaii(modifier: Modifier) {
             size = Size(w * 0.10f, h * 0.15f)
         )
 
-        // 4. Cuerpo / cabecita celeste del pajarito
         drawOval(
             color = Color(0xFF4FC3F7),
             topLeft = Offset(w * 0.22f, h * 0.22f),
@@ -793,7 +825,6 @@ private fun DibujoPajaroKawaii(modifier: Modifier) {
             style = Stroke(w * 0.04f)
         )
 
-        // 5. Piquito naranja triangular
         val pico = Path().apply {
             moveTo(w * 0.43f, h * 0.54f)
             lineTo(w * 0.57f, h * 0.54f)
@@ -803,18 +834,16 @@ private fun DibujoPajaroKawaii(modifier: Modifier) {
         drawPath(pico, Color(0xFFFF9800))
         drawPath(pico, Color(0xFFE65100), style = Stroke(w * 0.025f))
 
-        // 6. Ojitos brillantes y mejillas rosadas
         dibujarCaritaMini(w * 0.50f, h * 0.44f, w * 0.20f)
     }
 }
+
 @Composable
 private fun DibujoSombreroExploradorKawaii(modifier: Modifier) {
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
-        // Copa del sombrero verde bosque
         drawRoundRect(color = Color(0xFF66BB6A), topLeft = Offset(w * 0.28f, h * 0.24f), size = Size(w * 0.44f, h * 0.36f), cornerRadius = CornerRadius(w * 0.16f))
-        // Ala ancha
         drawRoundRect(color = Color(0xFF388E3C), topLeft = Offset(w * 0.12f, h * 0.54f), size = Size(w * 0.76f, h * 0.14f), cornerRadius = CornerRadius(w * 0.07f))
         dibujarCaritaMini(w * 0.50f, h * 0.43f, w * 0.16f)
     }
@@ -864,9 +893,7 @@ private fun DibujoCondorKawaii(modifier: Modifier) {
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
-        // Collar blanco
         drawRoundRect(color = Color(0xFFECEFF1), topLeft = Offset(w * 0.24f, h * 0.62f), size = Size(w * 0.52f, h * 0.18f), cornerRadius = CornerRadius(w * 0.09f))
-        // Cabecita oscura
         drawCircle(color = Color(0xFF37474F), radius = w * 0.30f, center = Offset(w * 0.50f, h * 0.44f))
         dibujarCaritaMini(w * 0.50f, h * 0.44f, w * 0.19f)
     }
@@ -877,9 +904,7 @@ private fun DibujoLeonKawaii(modifier: Modifier) {
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
-        // Melena naranja
         drawCircle(color = Color(0xFFFF8F00), radius = w * 0.40f, center = Offset(w * 0.50f, h * 0.50f))
-        // Carita amarilla
         drawCircle(color = Color(0xFFFFCA28), radius = w * 0.28f, center = Offset(w * 0.50f, h * 0.50f))
         dibujarCaritaMini(w * 0.50f, h * 0.50f, w * 0.19f)
     }
@@ -890,10 +915,8 @@ private fun DibujoCanguroKawaii(modifier: Modifier) {
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
-        // Orejas largas
         drawOval(color = Color(0xFFA1887F), topLeft = Offset(w * 0.26f, h * 0.12f), size = Size(w * 0.14f, h * 0.32f))
         drawOval(color = Color(0xFFA1887F), topLeft = Offset(w * 0.60f, h * 0.12f), size = Size(w * 0.14f, h * 0.32f))
-        // Carita
         drawCircle(color = Color(0xFFBCAAA4), radius = w * 0.31f, center = Offset(w * 0.50f, h * 0.56f))
         dibujarCaritaMini(w * 0.50f, h * 0.56f, w * 0.19f)
     }
@@ -904,10 +927,8 @@ private fun DibujoCascoBomberoKawaii(modifier: Modifier) {
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
-        // Casco rojo
         drawCircle(color = Color(0xFFE53935), radius = w * 0.32f, center = Offset(w * 0.50f, h * 0.50f))
         drawRoundRect(color = Color(0xFFB71C1C), topLeft = Offset(w * 0.14f, h * 0.58f), size = Size(w * 0.72f, h * 0.14f), cornerRadius = CornerRadius(w * 0.07f))
-        // Insignia amarilla
         drawCircle(color = Color(0xFFFFD54F), radius = w * 0.09f, center = Offset(w * 0.50f, h * 0.32f))
         dibujarCaritaMini(w * 0.50f, h * 0.50f, w * 0.17f)
     }
@@ -919,7 +940,6 @@ private fun DibujoHospitalKawaii(modifier: Modifier) {
         val w = size.width
         val h = size.height
         drawRoundRect(color = Color(0xFFE3F2FD), topLeft = Offset(w * 0.20f, h * 0.20f), size = Size(w * 0.60f, h * 0.60f), cornerRadius = CornerRadius(w * 0.12f))
-        // Cruz roja
         drawRect(color = Color(0xFFE53935), topLeft = Offset(w * 0.45f, h * 0.26f), size = Size(w * 0.10f, h * 0.24f))
         drawRect(color = Color(0xFFE53935), topLeft = Offset(w * 0.38f, h * 0.33f), size = Size(w * 0.24f, h * 0.10f))
         dibujarCaritaMini(w * 0.50f, h * 0.64f, w * 0.16f)
@@ -931,9 +951,7 @@ private fun DibujoCanoaKawaii(modifier: Modifier) {
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
-        // Agua celeste
         drawRoundRect(color = Color(0xFF4FC3F7), topLeft = Offset(w * 0.12f, h * 0.66f), size = Size(w * 0.76f, h * 0.16f), cornerRadius = CornerRadius(w * 0.08f))
-        // Canoa de madera
         val canoa = Path().apply {
             moveTo(w * 0.14f, h * 0.44f)
             lineTo(w * 0.86f, h * 0.44f)
@@ -985,6 +1003,7 @@ private fun DibujoFichaTextoKawaii(
         )
     }
 }
+
 @Composable
 private fun IconoEstrellaPreguntaKawaii(modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {

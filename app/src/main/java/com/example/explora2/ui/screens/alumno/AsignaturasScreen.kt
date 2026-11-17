@@ -161,12 +161,12 @@ fun AsignaturasContent(
                 modifier = Modifier.padding(horizontal = 4.dp)
             )
 
-            // 1. LENGUAJE Y COMUNICACIÓN
+            // 1. LENGUAJE Y COMUNICACIÓN (CON BORDE AMARILLO BRILLANTE)
             TarjetaMateriaKawaii(
                 titulo = "Lenguaje y Comunicación",
                 descripcion = "Lectura fluida, fábulas y comprensión lectora",
                 colorFondo = Color(0xFFE0F2F1),
-                colorBorde = Color(0xFF00897B),
+                colorBorde = Color(0xFFFFD600),
                 colorTexto = Color(0xFF00695C),
                 onClick = onLenguajeClick
             ) {
