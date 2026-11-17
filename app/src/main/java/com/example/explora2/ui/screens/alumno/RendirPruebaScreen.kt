@@ -39,6 +39,9 @@ import com.example.explora2.ui.components.IconoTrofeoInfantil
 import com.example.explora2.ui.utils.Audio
 import com.example.explora2.utils.Vibracion
 import kotlinx.coroutines.launch
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
 data class PreguntaEvaluacion(
     val asignatura: String,
@@ -383,11 +386,11 @@ fun RendirPruebaContent(
                 }
             }
 
-            // 3. TARJETA KAWAII DE LA PREGUNTA Y ALTERNATIVAS CON ILUSTRACIÓN DIDÁCTICA
+            // 3. TARJETA KAWAII DE LA PREGUNTA Y ALTERNATIVAS (BORDE NARANJA + ESTRELLITA KAWAII)
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(3.dp, Color(0xFF29B6F6), RoundedCornerShape(28.dp)),
+                    .border(3.dp, Color(0xFFFFA726), RoundedCornerShape(28.dp)),
                 shape = RoundedCornerShape(28.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 elevation = CardDefaults.cardElevation(4.dp)
@@ -403,19 +406,19 @@ fun RendirPruebaContent(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(48.dp)
+                                .size(50.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFFE1F5FE))
-                                .border(2.dp, Color(0xFF0288D1), CircleShape),
+                                .background(Color(0xFFFFF3E0))
+                                .border(2.5.dp, Color(0xFFFB8C00), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
-                            IconoLibroInfantil(modifier = Modifier.size(34.dp))
+                            IconoEstrellaPreguntaKawaii(modifier = Modifier.size(36.dp))
                         }
                         Text(
                             text = evaluacionActual.pregunta,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            color = Color(0xFF01579B),
+                            color = Color(0xFFE65100),
                             modifier = Modifier.weight(1f)
                         )
                         IconButton(
@@ -423,7 +426,7 @@ fun RendirPruebaContent(
                             modifier = Modifier
                                 .size(46.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFF29B6F6))
+                                .background(Color(0xFFFF9800))
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.VolumeUp,
@@ -432,6 +435,8 @@ fun RendirPruebaContent(
                             )
                         }
                     }
+
+                    HorizontalDivider(color = Color(0xFFFFE0B2))
 
                     HorizontalDivider(color = Color(0xFFB3E5FC))
 
@@ -729,21 +734,79 @@ private fun DibujoPajaroKawaii(modifier: Modifier) {
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
-        // Cuerpo celeste
-        drawCircle(color = Color(0xFF4FC3F7), radius = w * 0.35f, center = Offset(w * 0.50f, h * 0.52f))
-        drawCircle(color = Color(0xFF0277BD), radius = w * 0.35f, center = Offset(w * 0.50f, h * 0.52f), style = Stroke(w * 0.04f))
-        // Piquito naranja
+
+        // 1. Patitas naranjas abajo
+        drawLine(
+            color = Color(0xFFEF6C00),
+            start = Offset(w * 0.40f, h * 0.78f),
+            end = Offset(w * 0.40f, h * 0.88f),
+            strokeWidth = w * 0.05f,
+            cap = StrokeCap.Round
+        )
+        drawLine(
+            color = Color(0xFFEF6C00),
+            start = Offset(w * 0.60f, h * 0.78f),
+            end = Offset(w * 0.60f, h * 0.88f),
+            strokeWidth = w * 0.05f,
+            cap = StrokeCap.Round
+        )
+
+        // 2. Alitas laterales desplegadas (izquierda y derecha)
+        val alaIzq = Path().apply {
+            moveTo(w * 0.25f, h * 0.46f)
+            quadraticTo(w * 0.04f, h * 0.34f, w * 0.14f, h * 0.62f)
+            close()
+        }
+        drawPath(alaIzq, Color(0xFF0288D1))
+        drawPath(alaIzq, Color(0xFF01579B), style = Stroke(w * 0.035f))
+
+        val alaDer = Path().apply {
+            moveTo(w * 0.75f, h * 0.46f)
+            quadraticTo(w * 0.96f, h * 0.34f, w * 0.86f, h * 0.62f)
+            close()
+        }
+        drawPath(alaDer, Color(0xFF0288D1))
+        drawPath(alaDer, Color(0xFF01579B), style = Stroke(w * 0.035f))
+
+        // 3. Plumitas / cresta en la cabeza
+        drawOval(
+            color = Color(0xFF29B6F6),
+            topLeft = Offset(w * 0.42f, h * 0.10f),
+            size = Size(w * 0.10f, h * 0.16f)
+        )
+        drawOval(
+            color = Color(0xFF29B6F6),
+            topLeft = Offset(w * 0.50f, h * 0.12f),
+            size = Size(w * 0.10f, h * 0.15f)
+        )
+
+        // 4. Cuerpo / cabecita celeste del pajarito
+        drawOval(
+            color = Color(0xFF4FC3F7),
+            topLeft = Offset(w * 0.22f, h * 0.22f),
+            size = Size(w * 0.56f, h * 0.58f)
+        )
+        drawOval(
+            color = Color(0xFF01579B),
+            topLeft = Offset(w * 0.22f, h * 0.22f),
+            size = Size(w * 0.56f, h * 0.58f),
+            style = Stroke(w * 0.04f)
+        )
+
+        // 5. Piquito naranja triangular
         val pico = Path().apply {
-            moveTo(w * 0.44f, h * 0.56f)
-            lineTo(w * 0.56f, h * 0.56f)
-            lineTo(w * 0.50f, h * 0.66f)
+            moveTo(w * 0.43f, h * 0.54f)
+            lineTo(w * 0.57f, h * 0.54f)
+            lineTo(w * 0.50f, h * 0.65f)
             close()
         }
         drawPath(pico, Color(0xFFFF9800))
-        dibujarCaritaMini(w * 0.50f, h * 0.48f, w * 0.22f)
+        drawPath(pico, Color(0xFFE65100), style = Stroke(w * 0.025f))
+
+        // 6. Ojitos brillantes y mejillas rosadas
+        dibujarCaritaMini(w * 0.50f, h * 0.44f, w * 0.20f)
     }
 }
-
 @Composable
 private fun DibujoSombreroExploradorKawaii(modifier: Modifier) {
     Canvas(modifier = modifier) {
@@ -919,6 +982,40 @@ private fun DibujoFichaTextoKawaii(
             fontWeight = FontWeight.ExtraBold,
             fontSize = if (texto.length > 2) 12.sp else 17.sp,
             color = colorBorde
+        )
+    }
+}
+@Composable
+private fun IconoEstrellaPreguntaKawaii(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        val cx = w / 2f
+        val cy = h / 2f
+        val radioExt = w * 0.44f
+        val radioInt = w * 0.21f
+
+        val estrella = Path()
+        for (i in 0 until 10) {
+            val r = if (i % 2 == 0) radioExt else radioInt
+            val angulo = (i * 36.0 - 90.0) * (PI / 180.0)
+            val x = cx + (r * cos(angulo)).toFloat()
+            val y = cy + (r * sin(angulo)).toFloat()
+            if (i == 0) estrella.moveTo(x, y) else estrella.lineTo(x, y)
+        }
+        estrella.close()
+
+        drawPath(path = estrella, color = Color(0xFFFFCA28))
+        drawPath(
+            path = estrella,
+            color = Color(0xFFE65100),
+            style = Stroke(width = w * 0.045f)
+        )
+
+        dibujarCaritaMini(
+            centroX = cx,
+            centroY = cy + h * 0.03f,
+            escala = w * 0.18f
         )
     }
 }

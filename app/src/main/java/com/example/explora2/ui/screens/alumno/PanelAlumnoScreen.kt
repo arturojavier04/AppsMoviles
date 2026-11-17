@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -160,7 +161,7 @@ fun PanelAlumnoScreen(
             verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
 
-            // 1. CABECERA KAWAII DE BIENVENIDA CON OSITO EXPLORADOR (SIN CÁMARA)
+            // 1. CABECERA KAWAII DE BIENVENIDA CON NIÑO EXPLORADOR (SIN CÁMARA)
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -185,7 +186,7 @@ fun PanelAlumnoScreen(
                             .border(3.dp, Color(0xFF43A047), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        AvatarOsitoKawaii(modifier = Modifier.size(62.dp))
+                        AvatarNinoExploradorKawaii(modifier = Modifier.size(64.dp))
                     }
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
@@ -434,45 +435,99 @@ fun PanelAlumnoScreen(
 // =========================================================================
 
 @Composable
-private fun AvatarOsitoKawaii(modifier: Modifier = Modifier) {
+private fun AvatarNinoExploradorKawaii(modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
 
-        // Orejitas redondas
-        drawCircle(color = Color(0xFF8D6E63), radius = w * 0.16f, center = Offset(w * 0.24f, h * 0.26f))
-        drawCircle(color = Color(0xFFFFCCBC), radius = w * 0.09f, center = Offset(w * 0.24f, h * 0.26f))
+        // 1. Pañuelo rojo de explorador en el cuello
+        val panuelo = Path().apply {
+            moveTo(w * 0.28f, h * 0.78f)
+            lineTo(w * 0.72f, h * 0.78f)
+            lineTo(w * 0.50f, h * 0.94f)
+            close()
+        }
+        drawPath(path = panuelo, color = Color(0xFFE53935))
+        drawPath(path = panuelo, color = Color(0xFFB71C1C), style = Stroke(width = w * 0.035f))
 
-        drawCircle(color = Color(0xFF8D6E63), radius = w * 0.16f, center = Offset(w * 0.76f, h * 0.26f))
-        drawCircle(color = Color(0xFFFFCCBC), radius = w * 0.09f, center = Offset(w * 0.76f, h * 0.26f))
+        // 2. Orejitas laterales
+        drawCircle(color = Color(0xFFFFCCBC), radius = w * 0.08f, center = Offset(w * 0.21f, h * 0.56f))
+        drawCircle(color = Color(0xFFFFCCBC), radius = w * 0.08f, center = Offset(w * 0.79f, h * 0.56f))
 
-        // Cabecita del osito
-        drawCircle(color = Color(0xFFA1887F), radius = w * 0.36f, center = Offset(w * 0.50f, h * 0.54f))
+        // 3. Carita redonda del niño explorador
         drawCircle(
+            color = Color(0xFFFFE0B2),
+            radius = w * 0.30f,
+            center = Offset(w * 0.50f, h * 0.56f)
+        )
+        drawCircle(
+            color = Color(0xFF8D6E63),
+            radius = w * 0.30f,
+            center = Offset(w * 0.50f, h * 0.56f),
+            style = Stroke(width = w * 0.035f)
+        )
+
+        // 4. Flequillo de pelo castaño asomando bajo el sombrero
+        drawArc(
             color = Color(0xFF5D4037),
-            radius = w * 0.36f,
-            center = Offset(w * 0.50f, h * 0.54f),
-            style = Stroke(width = w * 0.04f)
+            startAngle = 180f,
+            sweepAngle = 180f,
+            useCenter = true,
+            topLeft = Offset(w * 0.22f, h * 0.26f),
+            size = Size(w * 0.56f, h * 0.32f)
         )
 
-        // Hocico cremita
-        drawOval(
-            color = Color(0xFFFFF8E1),
-            topLeft = Offset(w * 0.34f, h * 0.54f),
-            size = Size(w * 0.32f, h * 0.22f)
+        // 5. Copa del sombrero de explorador (verde bosque)
+        drawRoundRect(
+            color = Color(0xFF43A047),
+            topLeft = Offset(w * 0.26f, h * 0.14f),
+            size = Size(w * 0.48f, h * 0.24f),
+            cornerRadius = CornerRadius(w * 0.14f)
+        )
+        drawRoundRect(
+            color = Color(0xFF1B5E20),
+            topLeft = Offset(w * 0.26f, h * 0.14f),
+            size = Size(w * 0.48f, h * 0.24f),
+            cornerRadius = CornerRadius(w * 0.14f),
+            style = Stroke(width = w * 0.035f)
         )
 
-        // Naricita
-        drawCircle(color = Color(0xFF3E2723), radius = w * 0.05f, center = Offset(w * 0.50f, h * 0.60f))
+        // Cinta marrón e insignia dorada en el sombrero
+        drawRect(
+            color = Color(0xFF6D4C41),
+            topLeft = Offset(w * 0.26f, h * 0.31f),
+            size = Size(w * 0.48f, h * 0.06f)
+        )
+        drawCircle(
+            color = Color(0xFFFFCA28),
+            radius = w * 0.055f,
+            center = Offset(w * 0.50f, h * 0.24f)
+        )
 
-        // Ojitos kawaii brillantes
+        // 6. Ala ancha del sombrero de explorador
+        drawRoundRect(
+            color = Color(0xFF2E7D32),
+            topLeft = Offset(w * 0.10f, h * 0.35f),
+            size = Size(w * 0.80f, h * 0.09f),
+            cornerRadius = CornerRadius(w * 0.05f)
+        )
+        drawRoundRect(
+            color = Color(0xFF1B5E20),
+            topLeft = Offset(w * 0.10f, h * 0.35f),
+            size = Size(w * 0.80f, h * 0.09f),
+            cornerRadius = CornerRadius(w * 0.05f),
+            style = Stroke(width = w * 0.03f)
+        )
+
+        // 7. Ojitos brillantes, mejillas rosadas y sonrisa kawaii
         dibujarOjosYMejillasKawaii(
             centroX = w * 0.50f,
-            centroY = h * 0.52f,
-            escala = w * 0.24f
+            centroY = h * 0.58f,
+            escala = w * 0.22f
         )
     }
 }
+
 @Composable
 private fun IconoSolKawaii(modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
