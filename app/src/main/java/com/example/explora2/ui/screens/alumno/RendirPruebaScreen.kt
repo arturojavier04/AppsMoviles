@@ -126,6 +126,7 @@ fun RendirPruebaContent(
     }
 ) {
     val maximosIntentos = 2
+    val colorBordeNegro = Color(0xFF1E1E1E)
 
     val evaluaciones = listOf(
         // LENGUAJE
@@ -332,7 +333,7 @@ fun RendirPruebaContent(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 1. SELECTOR DE UNIDAD TIPO PÍLDORA KAWAII
+            // 1. SELECTOR DE UNIDAD TIPO PÍLDORA KAWAII CON BORDE NEGRO
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -351,12 +352,12 @@ fun RendirPruebaContent(
                             selectedContainerColor = Color(0xFFFF7043),
                             selectedLabelColor = Color.White,
                             containerColor = Color.White,
-                            labelColor = Color(0xFFE65100)
+                            labelColor = colorBordeNegro
                         ),
                         border = FilterChipDefaults.filterChipBorder(
                             enabled = true,
                             selected = seleccionada,
-                            borderColor = Color(0xFFFF9800),
+                            borderColor = colorBordeNegro,
                             borderWidth = 2.dp
                         ),
                         label = {
@@ -371,7 +372,7 @@ fun RendirPruebaContent(
                 }
             }
 
-            // 2. TARJETA DE INTENTOS RESTANTES
+            // 2. TARJETA DE INTENTOS RESTANTES CON BORDE NEGRO
             Card(
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(
@@ -381,7 +382,7 @@ fun RendirPruebaContent(
                     .fillMaxWidth()
                     .border(
                         width = 3.dp,
-                        color = if (intentosRestantes > 0) Color(0xFF66BB6A) else Color(0xFFEF5350),
+                        color = colorBordeNegro,
                         shape = RoundedCornerShape(24.dp)
                     )
             ) {
@@ -416,7 +417,7 @@ fun RendirPruebaContent(
                             .size(46.dp)
                             .clip(CircleShape)
                             .background(Color.White)
-                            .border(2.dp, Color(0xFF43A047), CircleShape)
+                            .border(2.dp, colorBordeNegro, CircleShape)
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.VolumeUp,
@@ -427,11 +428,11 @@ fun RendirPruebaContent(
                 }
             }
 
-            // 3. TARJETA KAWAII DE LA PREGUNTA Y ALTERNATIVAS (BORDE NARANJA + ESTRELLITA KAWAII)
+            // 3. TARJETA KAWAII DE LA PREGUNTA Y ALTERNATIVAS CON BORDE NEGRO
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(3.dp, Color(0xFFFFA726), RoundedCornerShape(28.dp)),
+                    .border(3.dp, colorBordeNegro, RoundedCornerShape(28.dp)),
                 shape = RoundedCornerShape(28.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 elevation = CardDefaults.cardElevation(4.dp)
@@ -450,7 +451,7 @@ fun RendirPruebaContent(
                                 .size(50.dp)
                                 .clip(CircleShape)
                                 .background(Color(0xFFFFF3E0))
-                                .border(2.5.dp, Color(0xFFFB8C00), CircleShape),
+                                .border(2.5.dp, colorBordeNegro, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             IconoEstrellaPreguntaKawaii(modifier = Modifier.size(36.dp))
@@ -468,6 +469,7 @@ fun RendirPruebaContent(
                                 .size(46.dp)
                                 .clip(CircleShape)
                                 .background(Color(0xFFFF9800))
+                                .border(2.dp, colorBordeNegro, CircleShape)
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.VolumeUp,
@@ -495,12 +497,12 @@ fun RendirPruebaContent(
                             shape = RoundedCornerShape(22.dp),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                             border = BorderStroke(
-                                width = if (estaSeleccionada) 3.dp else 2.dp,
-                                color = if (estaSeleccionada) Color(0xFF8E24AA) else Color(0xFFFFB74D)
+                                width = if (estaSeleccionada) 3.dp else 2.5.dp,
+                                color = colorBordeNegro
                             ),
                             colors = ButtonDefaults.outlinedButtonColors(
                                 containerColor = if (estaSeleccionada) Color(0xFFF3E5F5) else Color(0xFFFFFBF2),
-                                contentColor = Color(0xFF3E2723)
+                                contentColor = Color(0xFF1E1E1E)
                             ),
                             enabled = intentosRestantes > 0 && !evaluacionEnviada
                         ) {
@@ -516,7 +518,8 @@ fun RendirPruebaContent(
                                         .clip(CircleShape)
                                         .background(
                                             if (estaSeleccionada) Color(0xFF8E24AA) else Color(0xFFFF9800)
-                                        ),
+                                        )
+                                        .border(1.5.dp, colorBordeNegro, CircleShape),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
@@ -538,19 +541,19 @@ fun RendirPruebaContent(
                                 // Burbuja con ilustración kawaii específica para esa opción
                                 Box(
                                     modifier = Modifier
-                                        .size(48.dp)
+                                        .size(52.dp)
                                         .clip(CircleShape)
                                         .background(Color.White)
                                         .border(
                                             width = 2.dp,
-                                            color = if (estaSeleccionada) Color(0xFFAB47BC) else Color(0xFFFFCC80),
+                                            color = colorBordeNegro,
                                             shape = CircleShape
                                         ),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     IlustracionOpcionKawaii(
                                         opcion = opcion,
-                                        modifier = Modifier.size(38.dp)
+                                        modifier = Modifier.size(42.dp)
                                     )
                                 }
                             }
@@ -592,6 +595,7 @@ fun RendirPruebaContent(
                     .fillMaxWidth()
                     .height(56.dp),
                 shape = RoundedCornerShape(20.dp),
+                border = BorderStroke(2.5.dp, colorBordeNegro),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFF43A047),
                     disabledContainerColor = Color(0xFFC8E6C9)
@@ -607,7 +611,7 @@ fun RendirPruebaContent(
                 )
             }
 
-            // 5. TARJETA DE RESULTADO Y RETROALIMENTACIÓN KAWAII
+            // 5. TARJETA DE RESULTADO Y RETROALIMENTACIÓN KAWAII CON BORDE NEGRO
             if (evaluacionEnviada) {
                 val aprobado = notaCalculada >= 4
                 Card(
@@ -615,7 +619,7 @@ fun RendirPruebaContent(
                         .fillMaxWidth()
                         .border(
                             width = 3.dp,
-                            color = if (aprobado) Color(0xFF43A047) else Color(0xFFFF7043),
+                            color = colorBordeNegro,
                             shape = RoundedCornerShape(28.dp)
                         ),
                     shape = RoundedCornerShape(28.dp),
@@ -636,7 +640,8 @@ fun RendirPruebaContent(
                                     modifier = Modifier
                                         .size(50.dp)
                                         .clip(CircleShape)
-                                        .background(Color.White),
+                                        .background(Color.White)
+                                        .border(2.dp, colorBordeNegro, CircleShape),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     IconoTrofeoInfantil(modifier = Modifier.size(38.dp))
@@ -671,6 +676,7 @@ fun RendirPruebaContent(
                                     .fillMaxWidth()
                                     .height(50.dp),
                                 shape = RoundedCornerShape(16.dp),
+                                border = BorderStroke(2.dp, colorBordeNegro),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = Color(0xFFFF9800)
                                 )
@@ -725,7 +731,7 @@ private fun IlustracionOpcionKawaii(
         "pulmones" in texto -> DibujoPulmonesKawaii(modifier)
         "estómago" in texto -> DibujoManzanaKawaii(modifier)
 
-        // CIENCIAS U2: Cóndor, León, Canguro
+        // CIENCIAS U2: Cóndor, León, Canguro (bien caracterizados)
         "cóndor" in texto -> DibujoCondorKawaii(modifier)
         "león" in texto -> DibujoLeonKawaii(modifier)
         "canguro" in texto -> DibujoCanguroKawaii(modifier)
@@ -735,9 +741,10 @@ private fun IlustracionOpcionKawaii(
         "hospital" in texto -> DibujoHospitalKawaii(modifier)
         "biblioteca" in texto -> IconoLibroInfantil(modifier)
 
-        // HISTORIA U2: Chonos y Yaganes (canoa), Mayas, Aztecas
+        // HISTORIA U2: Chonos y Yaganes (canoa), Mayas (llama), Aztecas (pirámide)
         "yaganes" in texto || "chonos" in texto -> DibujoCanoaKawaii(modifier)
-        "mayas" in texto || "aztecas" in texto -> DibujoPiramideKawaii(modifier)
+        "mayas" in texto -> DibujoLlamaKawaii(modifier)
+        "aztecas" in texto -> DibujoPiramideKawaii(modifier)
 
         // MATEMÁTICA (Números con ficha kawaii colorida)
         else -> DibujoFichaTextoKawaii(
@@ -759,7 +766,7 @@ private fun DibujoRatonKawaii(modifier: Modifier) {
         drawCircle(color = Color(0xFF90A4AE), radius = w * 0.19f, center = Offset(w * 0.76f, h * 0.30f))
         drawCircle(color = Color(0xFFF8BBD0), radius = w * 0.11f, center = Offset(w * 0.76f, h * 0.30f))
         drawCircle(color = Color(0xFFB0BEC5), radius = w * 0.33f, center = Offset(w * 0.50f, h * 0.56f))
-        drawCircle(color = Color(0xFF455A64), radius = w * 0.33f, center = Offset(w * 0.50f, h * 0.56f), style = Stroke(w * 0.04f))
+        drawCircle(color = Color(0xFF1E1E1E), radius = w * 0.33f, center = Offset(w * 0.50f, h * 0.56f), style = Stroke(w * 0.04f))
         drawCircle(color = Color(0xFFEC407A), radius = w * 0.055f, center = Offset(w * 0.50f, h * 0.62f))
         dibujarCaritaMini(w * 0.50f, h * 0.54f, w * 0.21f)
     }
@@ -888,14 +895,77 @@ private fun DibujoManzanaKawaii(modifier: Modifier) {
     }
 }
 
+// =========================================================================
+// CÓNDOR, LEÓN Y CANGURO KAWAII (CIENCIAS UNIDAD 2)
+// =========================================================================
+
 @Composable
 private fun DibujoCondorKawaii(modifier: Modifier) {
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
-        drawRoundRect(color = Color(0xFFECEFF1), topLeft = Offset(w * 0.24f, h * 0.62f), size = Size(w * 0.52f, h * 0.18f), cornerRadius = CornerRadius(w * 0.09f))
-        drawCircle(color = Color(0xFF37474F), radius = w * 0.30f, center = Offset(w * 0.50f, h * 0.44f))
-        dibujarCaritaMini(w * 0.50f, h * 0.44f, w * 0.19f)
+
+        // 1. Alas negras desplegadas a los costados
+        val alaIzq = Path().apply {
+            moveTo(w * 0.26f, h * 0.56f)
+            quadraticTo(w * 0.02f, h * 0.36f, w * 0.10f, h * 0.72f)
+            lineTo(w * 0.28f, h * 0.74f)
+            close()
+        }
+        drawPath(alaIzq, Color(0xFF263238))
+        drawPath(alaIzq, Color(0xFF1E1E1E), style = Stroke(w * 0.03f))
+
+        val alaDer = Path().apply {
+            moveTo(w * 0.74f, h * 0.56f)
+            quadraticTo(w * 0.98f, h * 0.36f, w * 0.90f, h * 0.72f)
+            lineTo(w * 0.72f, h * 0.74f)
+            close()
+        }
+        drawPath(alaDer, Color(0xFF263238))
+        drawPath(alaDer, Color(0xFF1E1E1E), style = Stroke(w * 0.03f))
+
+        // 2. Collarín de plumas blancas esponjosas
+        drawCircle(color = Color(0xFFECEFF1), radius = w * 0.13f, center = Offset(w * 0.34f, h * 0.74f))
+        drawCircle(color = Color(0xFFECEFF1), radius = w * 0.14f, center = Offset(w * 0.50f, h * 0.76f))
+        drawCircle(color = Color(0xFFECEFF1), radius = w * 0.13f, center = Offset(w * 0.66f, h * 0.74f))
+        drawRoundRect(
+            color = Color(0xFFB0BEC5),
+            topLeft = Offset(w * 0.22f, h * 0.66f),
+            size = Size(w * 0.56f, h * 0.17f),
+            cornerRadius = CornerRadius(w * 0.09f),
+            style = Stroke(w * 0.03f)
+        )
+
+        // 3. Cresta rosada característica del cóndor macho arriba
+        drawRoundRect(
+            color = Color(0xFFEC407A),
+            topLeft = Offset(w * 0.41f, h * 0.11f),
+            size = Size(w * 0.18f, h * 0.14f),
+            cornerRadius = CornerRadius(w * 0.07f)
+        )
+        drawRoundRect(
+            color = Color(0xFF1E1E1E),
+            topLeft = Offset(w * 0.41f, h * 0.11f),
+            size = Size(w * 0.18f, h * 0.14f),
+            cornerRadius = CornerRadius(w * 0.07f),
+            style = Stroke(w * 0.025f)
+        )
+
+        // 4. Cabecita gris oscura del cóndor
+        drawCircle(color = Color(0xFF37474F), radius = w * 0.27f, center = Offset(w * 0.50f, h * 0.44f))
+        drawCircle(color = Color(0xFF1E1E1E), radius = w * 0.27f, center = Offset(w * 0.50f, h * 0.44f), style = Stroke(w * 0.035f))
+
+        // 5. Piquito curvo amarillo/marfil
+        val pico = Path().apply {
+            moveTo(w * 0.43f, h * 0.52f)
+            lineTo(w * 0.57f, h * 0.52f)
+            lineTo(w * 0.50f, h * 0.64f)
+            close()
+        }
+        drawPath(pico, Color(0xFFFFCA28))
+        drawPath(pico, Color(0xFF1E1E1E), style = Stroke(w * 0.025f))
+
+        dibujarCaritaMini(w * 0.50f, h * 0.42f, w * 0.17f)
     }
 }
 
@@ -904,9 +974,43 @@ private fun DibujoLeonKawaii(modifier: Modifier) {
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
-        drawCircle(color = Color(0xFFFF8F00), radius = w * 0.40f, center = Offset(w * 0.50f, h * 0.50f))
-        drawCircle(color = Color(0xFFFFCA28), radius = w * 0.28f, center = Offset(w * 0.50f, h * 0.50f))
-        dibujarCaritaMini(w * 0.50f, h * 0.50f, w * 0.19f)
+        val cx = w * 0.50f
+        val cy = h * 0.52f
+
+        // 1. Melena ondulada en forma de pétalos anaranjados
+        for (i in 0 until 10) {
+            val ang = (i * 36.0) * (PI / 180.0)
+            val px = cx + (w * 0.30f * cos(ang)).toFloat()
+            val py = cy + (h * 0.30f * sin(ang)).toFloat()
+            drawCircle(color = Color(0xFFE65100), radius = w * 0.14f, center = Offset(px, py))
+        }
+        drawCircle(color = Color(0xFFEF6C00), radius = w * 0.34f, center = Offset(cx, cy))
+
+        // 2. Orejitas redondas asomando arriba
+        drawCircle(color = Color(0xFFFFCA28), radius = w * 0.11f, center = Offset(w * 0.28f, h * 0.28f))
+        drawCircle(color = Color(0xFF1E1E1E), radius = w * 0.11f, center = Offset(w * 0.28f, h * 0.28f), style = Stroke(w * 0.03f))
+        drawCircle(color = Color(0xFFFFCA28), radius = w * 0.11f, center = Offset(w * 0.72f, h * 0.28f))
+        drawCircle(color = Color(0xFF1E1E1E), radius = w * 0.11f, center = Offset(w * 0.72f, h * 0.28f), style = Stroke(w * 0.03f))
+
+        // 3. Carita dorada del león
+        drawCircle(color = Color(0xFFFFD54F), radius = w * 0.26f, center = Offset(cx, cy))
+        drawCircle(color = Color(0xFF1E1E1E), radius = w * 0.26f, center = Offset(cx, cy), style = Stroke(w * 0.035f))
+
+        // 4. Hociquito crema y naricita triangular café
+        drawOval(
+            color = Color(0xFFFFF8E1),
+            topLeft = Offset(w * 0.38f, h * 0.53f),
+            size = Size(w * 0.24f, h * 0.15f)
+        )
+        val nariz = Path().apply {
+            moveTo(w * 0.46f, h * 0.54f)
+            lineTo(w * 0.54f, h * 0.54f)
+            lineTo(w * 0.50f, h * 0.60f)
+            close()
+        }
+        drawPath(nariz, Color(0xFF5D4037))
+
+        dibujarCaritaMini(cx, cy - h * 0.02f, w * 0.17f)
     }
 }
 
@@ -915,12 +1019,44 @@ private fun DibujoCanguroKawaii(modifier: Modifier) {
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
-        drawOval(color = Color(0xFFA1887F), topLeft = Offset(w * 0.26f, h * 0.12f), size = Size(w * 0.14f, h * 0.32f))
-        drawOval(color = Color(0xFFA1887F), topLeft = Offset(w * 0.60f, h * 0.12f), size = Size(w * 0.14f, h * 0.32f))
-        drawCircle(color = Color(0xFFBCAAA4), radius = w * 0.31f, center = Offset(w * 0.50f, h * 0.56f))
-        dibujarCaritaMini(w * 0.50f, h * 0.56f, w * 0.19f)
+
+        // 1. Orejas largas de canguro con interior rosado
+        drawOval(color = Color(0xFFA1887F), topLeft = Offset(w * 0.24f, h * 0.08f), size = Size(w * 0.15f, h * 0.36f))
+        drawOval(color = Color(0xFFF8BBD0), topLeft = Offset(w * 0.28f, h * 0.14f), size = Size(w * 0.07f, h * 0.24f))
+        drawOval(color = Color(0xFF1E1E1E), topLeft = Offset(w * 0.24f, h * 0.08f), size = Size(w * 0.15f, h * 0.36f), style = Stroke(w * 0.03f))
+
+        drawOval(color = Color(0xFFA1887F), topLeft = Offset(w * 0.61f, h * 0.08f), size = Size(w * 0.15f, h * 0.36f))
+        drawOval(color = Color(0xFFF8BBD0), topLeft = Offset(w * 0.65f, h * 0.14f), size = Size(w * 0.07f, h * 0.24f))
+        drawOval(color = Color(0xFF1E1E1E), topLeft = Offset(w * 0.61f, h * 0.08f), size = Size(w * 0.15f, h * 0.36f), style = Stroke(w * 0.03f))
+
+        // 2. Cabecita ovalada color caramelo/tierra
+        drawOval(
+            color = Color(0xFFBCAAA4),
+            topLeft = Offset(w * 0.21f, h * 0.32f),
+            size = Size(w * 0.58f, h * 0.54f)
+        )
+        drawOval(
+            color = Color(0xFF1E1E1E),
+            topLeft = Offset(w * 0.21f, h * 0.32f),
+            size = Size(w * 0.58f, h * 0.54f),
+            style = Stroke(w * 0.035f)
+        )
+
+        // 3. Hociquito claro alargado de canguro + nariz oscura
+        drawOval(
+            color = Color(0xFFEFEBE9),
+            topLeft = Offset(w * 0.34f, h * 0.58f),
+            size = Size(w * 0.32f, h * 0.22f)
+        )
+        drawCircle(color = Color(0xFF4E342E), radius = w * 0.055f, center = Offset(w * 0.50f, h * 0.63f))
+
+        dibujarCaritaMini(w * 0.50f, h * 0.52f, w * 0.19f)
     }
 }
+
+// =========================================================================
+// HISTORIA UNIDAD 1 Y UNIDAD 2 (BOMBERO, HOSPITAL, CANOA, LLAMA, PIRÁMIDE)
+// =========================================================================
 
 @Composable
 private fun DibujoCascoBomberoKawaii(modifier: Modifier) {
@@ -965,6 +1101,67 @@ private fun DibujoCanoaKawaii(modifier: Modifier) {
 }
 
 @Composable
+private fun DibujoLlamaKawaii(modifier: Modifier) {
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+
+        // 1. Orejas largas tipo banana arriba
+        drawOval(color = Color(0xFFFFF8E1), topLeft = Offset(w * 0.27f, h * 0.08f), size = Size(w * 0.12f, h * 0.28f))
+        drawOval(color = Color(0xFFF8BBD0), topLeft = Offset(w * 0.30f, h * 0.13f), size = Size(w * 0.06f, h * 0.18f))
+        drawOval(color = Color(0xFF1E1E1E), topLeft = Offset(w * 0.27f, h * 0.08f), size = Size(w * 0.12f, h * 0.28f), style = Stroke(w * 0.03f))
+
+        drawOval(color = Color(0xFFFFF8E1), topLeft = Offset(w * 0.61f, h * 0.08f), size = Size(w * 0.12f, h * 0.28f))
+        drawOval(color = Color(0xFFF8BBD0), topLeft = Offset(w * 0.64f, h * 0.13f), size = Size(w * 0.06f, h * 0.18f))
+        drawOval(color = Color(0xFF1E1E1E), topLeft = Offset(w * 0.61f, h * 0.08f), size = Size(w * 0.12f, h * 0.28f), style = Stroke(w * 0.03f))
+
+        // 2. Cuellito lanudo abajo
+        drawRoundRect(
+            color = Color(0xFFFFF3E0),
+            topLeft = Offset(w * 0.34f, h * 0.66f),
+            size = Size(w * 0.32f, h * 0.24f),
+            cornerRadius = CornerRadius(w * 0.10f)
+        )
+
+        // 3. Bufanda / pompón andino colorido en el cuello
+        drawRoundRect(
+            color = Color(0xFFE53935),
+            topLeft = Offset(w * 0.30f, h * 0.72f),
+            size = Size(w * 0.40f, h * 0.09f),
+            cornerRadius = CornerRadius(w * 0.04f)
+        )
+        drawCircle(color = Color(0xFFFFCA28), radius = w * 0.04f, center = Offset(w * 0.38f, h * 0.76f))
+        drawCircle(color = Color(0xFF29B6F6), radius = w * 0.04f, center = Offset(w * 0.50f, h * 0.76f))
+        drawCircle(color = Color(0xFF66BB6A), radius = w * 0.04f, center = Offset(w * 0.62f, h * 0.76f))
+
+        // 4. Carita esponjosa de la llama
+        drawRoundRect(
+            color = Color(0xFFFFF8E1),
+            topLeft = Offset(w * 0.22f, h * 0.28f),
+            size = Size(w * 0.56f, h * 0.44f),
+            cornerRadius = CornerRadius(w * 0.22f)
+        )
+        drawRoundRect(
+            color = Color(0xFF1E1E1E),
+            topLeft = Offset(w * 0.22f, h * 0.28f),
+            size = Size(w * 0.56f, h * 0.44f),
+            cornerRadius = CornerRadius(w * 0.22f),
+            style = Stroke(w * 0.035f)
+        )
+
+        // 5. Hociquito y naricita de llama
+        drawOval(
+            color = Color(0xFFFFE0B2),
+            topLeft = Offset(w * 0.38f, h * 0.52f),
+            size = Size(w * 0.24f, h * 0.14f)
+        )
+        drawCircle(color = Color(0xFF5D4037), radius = w * 0.04f, center = Offset(w * 0.50f, h * 0.56f))
+
+        dibujarCaritaMini(w * 0.50f, h * 0.46f, w * 0.18f)
+    }
+}
+
+@Composable
 private fun DibujoPiramideKawaii(modifier: Modifier) {
     Canvas(modifier = modifier) {
         val w = size.width
@@ -976,7 +1173,7 @@ private fun DibujoPiramideKawaii(modifier: Modifier) {
             close()
         }
         drawPath(piramide, Color(0xFFFFB74D))
-        drawPath(piramide, Color(0xFFE65100), style = Stroke(w * 0.04f))
+        drawPath(piramide, Color(0xFF1E1E1E), style = Stroke(w * 0.04f))
         dibujarCaritaMini(w * 0.50f, h * 0.58f, w * 0.16f)
     }
 }
@@ -1027,7 +1224,7 @@ private fun IconoEstrellaPreguntaKawaii(modifier: Modifier = Modifier) {
         drawPath(path = estrella, color = Color(0xFFFFCA28))
         drawPath(
             path = estrella,
-            color = Color(0xFFE65100),
+            color = Color(0xFF1E1E1E),
             style = Stroke(width = w * 0.045f)
         )
 
@@ -1073,8 +1270,8 @@ private fun DrawScope.dibujarCaritaMini(
 fun RendirPruebaScreenPreview() {
     MaterialTheme {
         RendirPruebaContent(
-            materiaInicial = "Lenguaje",
-            unidadInicial = "Unidad 1",
+            materiaInicial = "Ciencias",
+            unidadInicial = "Unidad 2",
             intentosRestantes = 2,
             ultimoPuntaje = 0,
             onVolverClick = {},
