@@ -2,6 +2,7 @@ package com.example.explora2.ui.screens.alumno
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -14,12 +15,12 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -29,20 +30,25 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
+import com.example.explora2.R
 import com.example.explora2.navigation.Screen
 import com.example.explora2.repository.ConfiguracionStore
 import com.example.explora2.ui.components.BarraNavegacionInferior
 import com.example.explora2.ui.components.BarraNavegacionInferiorContent
-import com.example.explora2.ui.components.IconoLibroInfantil
-import com.example.explora2.ui.components.IconoTrofeoInfantil
 import com.example.explora2.ui.utils.Audio
 import com.example.explora2.utils.Vibracion
+import com.example.explora2.viewmodel.PokemonViewModel
 import kotlinx.coroutines.launch
 import kotlin.math.PI
 import kotlin.math.cos
@@ -61,6 +67,7 @@ data class PreguntaEvaluacion(
 @Composable
 fun RendirPruebaScreen(
     navController: NavController,
+    pokemonViewModel: PokemonViewModel = viewModel(),
     onEntregaDocente: ((titulo: String, asignatura: String, unidad: String, nota: String, respuesta: String) -> Unit)? = null
 ) {
     val contexto = LocalContext.current
@@ -80,6 +87,11 @@ fun RendirPruebaScreen(
 
     val audioHelper = remember { Audio(contexto) }
 
+    // Al ingresar a la prueba, cargamos a Jirachi (ID 385) desde la API REST
+    LaunchedEffect(Unit) {
+        pokemonViewModel.cargarPokemonEspecifico(385, "¡Jirachi te desea mucha suerte en tu desafío!")
+    }
+
     DisposableEffect(Unit) {
         onDispose {
             audioHelper.liberar()
@@ -91,6 +103,7 @@ fun RendirPruebaScreen(
         unidadInicial = unidadRecibida,
         intentosRestantes = intentosRestantes,
         ultimoPuntaje = ultimoPuntaje,
+        pokemonViewModel = pokemonViewModel,
         onVolverClick = { navController.popBackStack() },
         onReproducirAudio = { texto -> audioHelper.hablar(texto) },
         onVibrarError = { Vibracion.vibrarError(contexto) },
@@ -116,6 +129,7 @@ fun RendirPruebaContent(
     unidadInicial: String = "Unidad 1",
     intentosRestantes: Int,
     ultimoPuntaje: Int,
+    pokemonViewModel: PokemonViewModel = viewModel(),
     onVolverClick: () -> Unit,
     onReproducirAudio: (String) -> Unit,
     onVibrarError: () -> Unit = {},
@@ -221,485 +235,616 @@ fun RendirPruebaContent(
     var evaluacionEnviada by remember { mutableStateOf(false) }
     var notaCalculada by remember { mutableStateOf(0) }
 
+    // Estados para mostrar a Jirachi en grande a toda pantalla al acertar
+    var mostrarJirachiPantallaCompleta by remember { mutableStateOf(false) }
+    var mensajeCelebracionJirachi by remember { mutableStateOf("¡Bien hecho!") }
+
     val letrasOpciones = listOf("A", "B", "C")
 
-    Scaffold(
-        containerColor = Color(0xFFFFFDE7),
-        topBar = {
-            Surface(
-                shape = RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp),
-                shadowElevation = 8.dp
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            brush = Brush.horizontalGradient(
-                                colors = listOf(
-                                    Color(0xFFFF7043), // Coral alegre
-                                    Color(0xFFFFB300)  // Amarillo sol
-                                )
-                            )
-                        )
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            containerColor = Color(0xFFFFFDE7),
+            topBar = {
+                Surface(
+                    shape = RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp),
+                    shadowElevation = 8.dp
                 ) {
-                    TopAppBar(
-                        title = {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(38.dp)
-                                        .clip(CircleShape)
-                                        .background(Color.White),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    IconoTrofeoInfantil(modifier = Modifier.size(28.dp))
-                                }
-                                Column {
-                                    Text(
-                                        text = "Desafío · ${evaluacionActual.asignatura}",
-                                        fontWeight = FontWeight.ExtraBold,
-                                        fontSize = 19.sp,
-                                        color = Color.White
-                                    )
-                                    Text(
-                                        text = "${evaluacionActual.titulo} · 2.° Básico",
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 12.sp,
-                                        color = Color(0xFFFFF8E1)
-                                    )
-                                }
-                            }
-                        },
-                        navigationIcon = {
-                            IconButton(
-                                onClick = onVolverClick,
-                                modifier = Modifier
-                                    .padding(start = 8.dp)
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.White.copy(alpha = 0.92f))
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = "Volver al panel",
-                                    tint = Color(0xFFE65100),
-                                    modifier = Modifier.size(22.dp)
-                                )
-                            }
-                        },
-                        actions = {
-                            Surface(
-                                shape = RoundedCornerShape(16.dp),
-                                color = Color.White.copy(alpha = 0.92f),
-                                modifier = Modifier.padding(end = 12.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Star,
-                                        contentDescription = null,
-                                        tint = Color(0xFFFFA000),
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Text(
-                                        text = "7 pts",
-                                        fontWeight = FontWeight.ExtraBold,
-                                        fontSize = 13.sp,
-                                        color = Color(0xFFE65100)
-                                    )
-                                }
-                            }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = Color.Transparent
-                        )
-                    )
-                }
-            }
-        },
-        bottomBar = bottomBar
-    ) { espacioInterior ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(espacioInterior)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // 1. SELECTOR DE UNIDAD TIPO PÍLDORA KAWAII CON BORDE NEGRO
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                listOf("Unidad 1", "Unidad 2").forEach { unidad ->
-                    val seleccionada = unidadActiva == unidad
-                    FilterChip(
-                        selected = seleccionada,
-                        onClick = {
-                            unidadActiva = unidad
-                            respuestaSeleccionada = null
-                            evaluacionEnviada = false
-                        },
-                        shape = RoundedCornerShape(16.dp),
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Color(0xFFFF7043),
-                            selectedLabelColor = Color.White,
-                            containerColor = Color.White,
-                            labelColor = colorBordeNegro
-                        ),
-                        border = FilterChipDefaults.filterChipBorder(
-                            enabled = true,
-                            selected = seleccionada,
-                            borderColor = colorBordeNegro,
-                            borderWidth = 2.dp
-                        ),
-                        label = {
-                            Text(
-                                text = "📘 $unidad",
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 14.sp,
-                                modifier = Modifier.padding(vertical = 4.dp)
-                            )
-                        }
-                    )
-                }
-            }
-
-            // 2. TARJETA DE INTENTOS RESTANTES CON BORDE NEGRO
-            Card(
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = if (intentosRestantes > 0) Color(0xFFE8F5E9) else Color(0xFFFFEBEE)
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(
-                        width = 3.dp,
-                        color = colorBordeNegro,
-                        shape = RoundedCornerShape(24.dp)
-                    )
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = if (intentosRestantes > 0)
-                                "⚡ Intentos: $intentosRestantes de $maximosIntentos"
-                            else
-                                "🔒 Sin intentos disponibles",
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 17.sp,
-                            color = if (intentosRestantes > 0) Color(0xFF1B5E20) else Color(0xFFC62828)
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = if (intentosRestantes > 0) "Toca una opción para escucharla y ver su dibujo."
-                            else "Has completado tus oportunidades en esta prueba.",
-                            fontSize = 14.sp,
-                            color = if (intentosRestantes > 0) Color(0xFF2E7D32) else Color(0xFFB71C1C)
-                        )
-                    }
-                    IconButton(
-                        onClick = {
-                            onReproducirAudio("Tienes $intentosRestantes intentos restantes para responder esta evaluación.")
-                        },
+                    Box(
                         modifier = Modifier
-                            .size(46.dp)
-                            .clip(CircleShape)
-                            .background(Color.White)
-                            .border(2.dp, colorBordeNegro, CircleShape)
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.VolumeUp,
-                            contentDescription = "Escuchar intentos",
-                            tint = Color(0xFF2E7D32)
-                        )
-                    }
-                }
-            }
-
-            // 3. TARJETA KAWAII DE LA PREGUNTA Y ALTERNATIVAS CON BORDE NEGRO
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(3.dp, colorBordeNegro, RoundedCornerShape(28.dp)),
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(4.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(50.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFFFFF3E0))
-                                .border(2.5.dp, colorBordeNegro, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            IconoEstrellaPreguntaKawaii(modifier = Modifier.size(36.dp))
-                        }
-                        Text(
-                            text = evaluacionActual.pregunta,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color(0xFFE65100),
-                            modifier = Modifier.weight(1f)
-                        )
-                        IconButton(
-                            onClick = { onReproducirAudio(evaluacionActual.pregunta) },
-                            modifier = Modifier
-                                .size(46.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFFFF9800))
-                                .border(2.dp, colorBordeNegro, CircleShape)
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.VolumeUp,
-                                contentDescription = "Escuchar pregunta",
-                                tint = Color.White
+                            .fillMaxWidth()
+                            .background(
+                                brush = Brush.horizontalGradient(
+                                    colors = listOf(
+                                        Color(0xFFFF7043),
+                                        Color(0xFFFFB300)
+                                    )
+                                )
                             )
-                        }
-                    }
-
-                    HorizontalDivider(color = Color(0xFFFFE0B2))
-
-                    // Opciones didácticas: Letra (A/B/C) + Texto + Personaje Kawaii de la opción
-                    evaluacionActual.opciones.forEachIndexed { indice, opcion ->
-                        val estaSeleccionada = respuestaSeleccionada == indice
-                        OutlinedButton(
-                            onClick = {
-                                if (intentosRestantes > 0 && !evaluacionEnviada) {
-                                    respuestaSeleccionada = indice
-                                    onReproducirAudio(opcion)
+                    ) {
+                        TopAppBar(
+                            title = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Image(
+                                        painter = painterResource(id = R.drawable.poke),
+                                        contentDescription = "Pokéball",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .size(34.dp)
+                                            .clip(CircleShape)
+                                            .border(2.dp, Color.White, CircleShape)
+                                    )
+                                    Column {
+                                        Text(
+                                            text = "Desafío · ${evaluacionActual.asignatura}",
+                                            fontWeight = FontWeight.ExtraBold,
+                                            fontSize = 19.sp,
+                                            color = Color.White
+                                        )
+                                        Text(
+                                            text = "${evaluacionActual.titulo} · Explora2",
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontSize = 12.sp,
+                                            color = Color(0xFFFFF8E1)
+                                        )
+                                    }
                                 }
                             },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = 68.dp),
-                            shape = RoundedCornerShape(22.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                            border = BorderStroke(
-                                width = if (estaSeleccionada) 3.dp else 2.5.dp,
-                                color = colorBordeNegro
-                            ),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = if (estaSeleccionada) Color(0xFFF3E5F5) else Color(0xFFFFFBF2),
-                                contentColor = Color(0xFF1E1E1E)
-                            ),
-                            enabled = intentosRestantes > 0 && !evaluacionEnviada
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                // Burbuja con letra A, B o C
-                                Box(
+                            navigationIcon = {
+                                IconButton(
+                                    onClick = onVolverClick,
                                     modifier = Modifier
-                                        .size(32.dp)
+                                        .padding(start = 8.dp)
+                                        .size(40.dp)
                                         .clip(CircleShape)
-                                        .background(
-                                            if (estaSeleccionada) Color(0xFF8E24AA) else Color(0xFFFF9800)
+                                        .background(Color.White.copy(alpha = 0.92f))
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = "Volver al panel",
+                                        tint = Color(0xFFE65100),
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                            },
+                            actions = {
+                                Surface(
+                                    shape = RoundedCornerShape(18.dp),
+                                    color = Color.White.copy(alpha = 0.92f),
+                                    modifier = Modifier.padding(end = 12.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                    ) {
+                                        Image(
+                                            painter = painterResource(id = R.drawable.poke),
+                                            contentDescription = "Pokéball",
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier
+                                                .size(22.dp)
+                                                .clip(CircleShape)
                                         )
-                                        .border(1.5.dp, colorBordeNegro, CircleShape),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = letrasOpciones.getOrElse(indice) { "•" },
-                                        color = Color.White,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        fontSize = 14.sp
-                                    )
+                                        Image(
+                                            painter = painterResource(id = R.drawable.ultra),
+                                            contentDescription = "Ultra Ball",
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier
+                                                .size(22.dp)
+                                                .clip(CircleShape)
+                                        )
+                                        Image(
+                                            painter = painterResource(id = R.drawable.master),
+                                            contentDescription = "Master Ball",
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier
+                                                .size(22.dp)
+                                                .clip(CircleShape)
+                                        )
+                                    }
                                 }
-
-                                // Texto de la alternativa
-                                Text(
-                                    text = opcion,
-                                    fontSize = 16.sp,
-                                    fontWeight = if (estaSeleccionada) FontWeight.ExtraBold else FontWeight.SemiBold,
-                                    modifier = Modifier.weight(1f)
-                                )
-
-                                // Burbuja con ilustración kawaii específica para esa opción
-                                Box(
-                                    modifier = Modifier
-                                        .size(52.dp)
-                                        .clip(CircleShape)
-                                        .background(Color.White)
-                                        .border(
-                                            width = 2.dp,
-                                            color = colorBordeNegro,
-                                            shape = CircleShape
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    IlustracionOpcionKawaii(
-                                        opcion = opcion,
-                                        modifier = Modifier.size(42.dp)
-                                    )
-                                }
-                            }
-                        }
+                            },
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = Color.Transparent
+                            )
+                        )
                     }
                 }
-            }
-
-            // 4. BOTÓN DE ENTREGA KAWAII
-            Button(
-                onClick = {
-                    if (respuestaSeleccionada != null && intentosRestantes > 0) {
-                        val esCorrecto = (respuestaSeleccionada == evaluacionActual.respuestaCorrecta)
-                        notaCalculada = if (esCorrecto) 7 else 2
-                        val nuevosIntentos = intentosRestantes - 1
-
-                        onGuardarIntento(nuevosIntentos, notaCalculada)
-                        evaluacionEnviada = true
-
-                        val textoOpcionElegida = evaluacionActual.opciones[respuestaSeleccionada!!]
-
-                        onEntregaDocente?.invoke(
-                            evaluacionActual.titulo,
-                            evaluacionActual.asignatura,
-                            evaluacionActual.unidad,
-                            "$notaCalculada/7 puntos",
-                            textoOpcionElegida
-                        )
-
-                        if (esCorrecto) {
-                            onReproducirAudio("¡Excelente! Respuesta correcta. Obtuviste siete puntos.")
-                        } else {
-                            onVibrarError()
-                            onReproducirAudio("Respuesta incorrecta. " + evaluacionActual.explicacion)
-                        }
-                    }
-                },
+            },
+            bottomBar = bottomBar
+        ) { espacioInterior ->
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(20.dp),
-                border = BorderStroke(2.5.dp, colorBordeNegro),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF43A047),
-                    disabledContainerColor = Color(0xFFC8E6C9)
-                ),
-                enabled = respuestaSeleccionada != null && !evaluacionEnviada && intentosRestantes > 0
+                    .fillMaxSize()
+                    .padding(espacioInterior)
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Icon(Icons.Default.CheckCircle, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "¡Enviar mi Respuesta! 🚀",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.ExtraBold
-                )
-            }
+                // 1. SELECTOR DE UNIDAD TIPO PÍLDORA KAWAII CON BORDE NEGRO
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    listOf("Unidad 1", "Unidad 2").forEach { unidad ->
+                        val seleccionada = unidadActiva == unidad
+                        FilterChip(
+                            selected = seleccionada,
+                            onClick = {
+                                unidadActiva = unidad
+                                respuestaSeleccionada = null
+                                evaluacionEnviada = false
+                                mostrarJirachiPantallaCompleta = false
+                            },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = Color(0xFFFF7043),
+                                selectedLabelColor = Color.White,
+                                containerColor = Color.White,
+                                labelColor = colorBordeNegro
+                            ),
+                            border = FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = seleccionada,
+                                borderColor = colorBordeNegro,
+                                borderWidth = 2.dp
+                            ),
+                            label = {
+                                Text(
+                                    text = "📘 $unidad",
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 14.sp,
+                                    modifier = Modifier.padding(vertical = 4.dp)
+                                )
+                            }
+                        )
+                    }
+                }
 
-            // 5. TARJETA DE RESULTADO Y RETROALIMENTACIÓN KAWAII CON BORDE NEGRO
-            if (evaluacionEnviada) {
-                val aprobado = notaCalculada >= 4
+                // 2. TARJETA DE INTENTOS RESTANTES CON BORDE NEGRO
                 Card(
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (intentosRestantes > 0) Color(0xFFE8F5E9) else Color(0xFFFFEBEE)
+                    ),
                     modifier = Modifier
                         .fillMaxWidth()
                         .border(
                             width = 3.dp,
                             color = colorBordeNegro,
-                            shape = RoundedCornerShape(28.dp)
-                        ),
-                    shape = RoundedCornerShape(28.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (aprobado) Color(0xFFE8F5E9) else Color(0xFFFFF3E0)
-                    )
+                            shape = RoundedCornerShape(24.dp)
+                        )
                 ) {
-                    Column(
-                        modifier = Modifier.padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            if (aprobado) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(50.dp)
-                                        .clip(CircleShape)
-                                        .background(Color.White)
-                                        .border(2.dp, colorBordeNegro, CircleShape),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    IconoTrofeoInfantil(modifier = Modifier.size(38.dp))
-                                }
-                            }
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = if (aprobado)
-                                    "🎉 ¡Lo lograste! ($notaCalculada/7 pts)"
+                                text = if (intentosRestantes > 0)
+                                    "⚡ Intentos: $intentosRestantes de $maximosIntentos"
                                 else
-                                    "💪 ¡Casi! Sigamos practicando ($notaCalculada/7 pts)",
-                                fontSize = 19.sp,
+                                    "🔒 Sin intentos disponibles",
                                 fontWeight = FontWeight.ExtraBold,
-                                color = if (aprobado) Color(0xFF1B5E20) else Color(0xFFE65100),
-                                modifier = Modifier.weight(1f)
+                                fontSize = 17.sp,
+                                color = if (intentosRestantes > 0) Color(0xFF1B5E20) else Color(0xFFC62828)
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = if (intentosRestantes > 0) "Toca una opción para escucharla y ver su dibujo."
+                                else "Has completado tus oportunidades en esta prueba.",
+                                fontSize = 14.sp,
+                                color = if (intentosRestantes > 0) Color(0xFF2E7D32) else Color(0xFFB71C1C)
                             )
                         }
-
-                        Text(
-                            text = evaluacionActual.explicacion,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = Color(0xFF3E2723)
-                        )
-
-                        if (intentosRestantes > 0) {
-                            Button(
-                                onClick = {
-                                    evaluacionEnviada = false
-                                    respuestaSeleccionada = null
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(50.dp),
-                                shape = RoundedCornerShape(16.dp),
-                                border = BorderStroke(2.dp, colorBordeNegro),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFFFF9800)
-                                )
-                            ) {
-                                Icon(Icons.Default.Refresh, contentDescription = null)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "Intentar otra vez ($intentosRestantes restante)",
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.ExtraBold
-                                )
-                            }
-                        } else {
-                            Text(
-                                text = "Has usado todos tus intentos disponibles.",
-                                color = Color(0xFFC62828),
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp
+                        IconButton(
+                            onClick = {
+                                onReproducirAudio("Tienes $intentosRestantes intentos restantes para responder esta evaluación.")
+                            },
+                            modifier = Modifier
+                                .size(46.dp)
+                                .clip(CircleShape)
+                                .background(Color.White)
+                                .border(2.dp, colorBordeNegro, CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.VolumeUp,
+                                contentDescription = "Escuchar intentos",
+                                tint = Color(0xFF2E7D32)
                             )
                         }
                     }
                 }
+
+                // 3. TARJETA KAWAII DE LA PREGUNTA Y ALTERNATIVAS CON JIRACHI API REST
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(3.dp, colorBordeNegro, RoundedCornerShape(28.dp)),
+                    shape = RoundedCornerShape(28.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(4.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(50.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFFFF3E0))
+                                    .border(2.5.dp, colorBordeNegro, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CompaneroJirachiApi(
+                                    pokemonViewModel = pokemonViewModel,
+                                    modifier = Modifier.size(42.dp)
+                                )
+                            }
+                            Text(
+                                text = evaluacionActual.pregunta,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color(0xFFE65100),
+                                modifier = Modifier.weight(1f)
+                            )
+                            IconButton(
+                                onClick = { onReproducirAudio(evaluacionActual.pregunta) },
+                                modifier = Modifier
+                                    .size(46.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFFF9800))
+                                    .border(2.dp, colorBordeNegro, CircleShape)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.VolumeUp,
+                                    contentDescription = "Escuchar pregunta",
+                                    tint = Color.White
+                                )
+                            }
+                        }
+
+                        HorizontalDivider(color = Color(0xFFFFE0B2))
+
+                        evaluacionActual.opciones.forEachIndexed { indice, opcion ->
+                            val estaSeleccionada = respuestaSeleccionada == indice
+                            OutlinedButton(
+                                onClick = {
+                                    if (intentosRestantes > 0 && !evaluacionEnviada) {
+                                        respuestaSeleccionada = indice
+                                        onReproducirAudio(opcion)
+                                    }
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 68.dp),
+                                shape = RoundedCornerShape(22.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                                border = BorderStroke(
+                                    width = if (estaSeleccionada) 3.dp else 2.5.dp,
+                                    color = colorBordeNegro
+                                ),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    containerColor = if (estaSeleccionada) Color(0xFFF3E5F5) else Color(0xFFFFFBF2),
+                                    contentColor = Color(0xFF1E1E1E)
+                                ),
+                                enabled = intentosRestantes > 0 && !evaluacionEnviada
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(32.dp)
+                                            .clip(CircleShape)
+                                            .background(
+                                                if (estaSeleccionada) Color(0xFF8E24AA) else Color(0xFFFF9800)
+                                            )
+                                            .border(1.5.dp, colorBordeNegro, CircleShape),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = letrasOpciones.getOrElse(indice) { "•" },
+                                            color = Color.White,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            fontSize = 14.sp
+                                        )
+                                    }
+
+                                    Text(
+                                        text = opcion,
+                                        fontSize = 16.sp,
+                                        fontWeight = if (estaSeleccionada) FontWeight.ExtraBold else FontWeight.SemiBold,
+                                        modifier = Modifier.weight(1f)
+                                    )
+
+                                    Box(
+                                        modifier = Modifier
+                                            .size(52.dp)
+                                            .clip(CircleShape)
+                                            .background(Color.White)
+                                            .border(
+                                                width = 2.dp,
+                                                color = colorBordeNegro,
+                                                shape = CircleShape
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        IlustracionOpcionKawaii(
+                                            opcion = opcion,
+                                            modifier = Modifier.size(42.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 4. BOTÓN DE ENTREGA KAWAII
+                Button(
+                    onClick = {
+                        if (respuestaSeleccionada != null && intentosRestantes > 0) {
+                            val esCorrecto = (respuestaSeleccionada == evaluacionActual.respuestaCorrecta)
+                            notaCalculada = if (esCorrecto) 7 else 2
+                            val nuevosIntentos = intentosRestantes - 1
+
+                            onGuardarIntento(nuevosIntentos, notaCalculada)
+                            evaluacionEnviada = true
+
+                            val textoOpcionElegida = evaluacionActual.opciones[respuestaSeleccionada!!]
+
+                            onEntregaDocente?.invoke(
+                                evaluacionActual.titulo,
+                                evaluacionActual.asignatura,
+                                evaluacionActual.unidad,
+                                "$notaCalculada/7 puntos",
+                                textoOpcionElegida
+                            )
+
+                            if (esCorrecto) {
+                                mensajeCelebracionJirachi = if (unidadActiva == "Unidad 1") {
+                                    "¡Bien hecho!"
+                                } else {
+                                    "¡Buen trabajo!"
+                                }
+                                pokemonViewModel.cargarPokemonEspecifico(385, mensajeCelebracionJirachi)
+                                mostrarJirachiPantallaCompleta = true
+                                onReproducirAudio("$mensajeCelebracionJirachi Respuesta correcta.")
+                            } else {
+                                onVibrarError()
+                                onReproducirAudio("Respuesta incorrecta. " + evaluacionActual.explicacion)
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    border = BorderStroke(2.5.dp, colorBordeNegro),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF43A047),
+                        disabledContainerColor = Color(0xFFC8E6C9)
+                    ),
+                    enabled = respuestaSeleccionada != null && !evaluacionEnviada && intentosRestantes > 0
+                ) {
+                    Icon(Icons.Default.CheckCircle, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "¡Enviar mi Respuesta! 🚀",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                }
+
+                // 5. TARJETA DE RESULTADO Y RETROALIMENTACIÓN KAWAII CON BORDE NEGRO
+                if (evaluacionEnviada) {
+                    val aprobado = notaCalculada >= 4
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(
+                                width = 3.dp,
+                                color = colorBordeNegro,
+                                shape = RoundedCornerShape(28.dp)
+                            ),
+                        shape = RoundedCornerShape(28.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (aprobado) Color(0xFFE8F5E9) else Color(0xFFFFF3E0)
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                if (aprobado) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(50.dp)
+                                            .clip(CircleShape)
+                                            .background(Color.White)
+                                            .border(2.dp, colorBordeNegro, CircleShape),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Image(
+                                            painter = painterResource(id = R.drawable.master),
+                                            contentDescription = "Master Ball",
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier
+                                                .size(36.dp)
+                                                .clip(CircleShape)
+                                        )
+                                    }
+                                }
+                                Text(
+                                    text = if (aprobado)
+                                        "🎉 ¡Lo lograste! ($notaCalculada/7 pts)"
+                                    else
+                                        "💪 ¡Casi! Sigamos practicando ($notaCalculada/7 pts)",
+                                    fontSize = 19.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = if (aprobado) Color(0xFF1B5E20) else Color(0xFFE65100),
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+
+                            Text(
+                                text = evaluacionActual.explicacion,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFF3E2723)
+                            )
+
+                            if (intentosRestantes > 0) {
+                                Button(
+                                    onClick = {
+                                        evaluacionEnviada = false
+                                        respuestaSeleccionada = null
+                                        mostrarJirachiPantallaCompleta = false
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(50.dp),
+                                    shape = RoundedCornerShape(16.dp),
+                                    border = BorderStroke(2.dp, colorBordeNegro),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFFFF9800)
+                                    )
+                                ) {
+                                    Icon(Icons.Default.Refresh, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Intentar otra vez ($intentosRestantes restante)",
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.ExtraBold
+                                    )
+                                }
+                            } else {
+                                Text(
+                                    text = "Has usado todos tus intentos disponibles.",
+                                    color = Color(0xFFC62828),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp
+                                )
+                            }
+                        }
+                    }
+                }
             }
+        }
+
+        // PANTALLA COMPLETA DE CELEBRACIÓN CON JIRACHI (ID 385) AL RESPONDER BIEN
+        if (mostrarJirachiPantallaCompleta) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0xFFFFFDE7).copy(alpha = 0.98f),
+                                Color(0xFFE8F5E9).copy(alpha = 0.98f)
+                            )
+                        )
+                    )
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(210.dp)
+                            .shadow(10.dp, CircleShape)
+                            .clip(CircleShape)
+                            .background(Color.White)
+                            .border(5.dp, colorBordeNegro, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AsyncImage(
+                            model = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/385.png",
+                            contentDescription = "Jirachi celebrando",
+                            modifier = Modifier.size(175.dp),
+                            contentScale = ContentScale.Fit
+                        )
+                    }
+
+                    Text(
+                        text = mensajeCelebracionJirachi,
+                        fontSize = 36.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color(0xFF1B5E20),
+                        textAlign = TextAlign.Center
+                    )
+
+                    Button(
+                        onClick = { mostrarJirachiPantallaCompleta = false },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(58.dp),
+                        shape = RoundedCornerShape(20.dp),
+                        border = BorderStroke(3.dp, colorBordeNegro),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF43A047),
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Text(
+                            text = "¡Seguir avanzando! 🚀",
+                            fontSize = 19.sp,
+                            fontWeight = FontWeight.ExtraBold
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// =========================================================================
+// COMPONENTE API REST: JIRACHI ESTELAR (ID 385 DE LA POKÉAPI)
+// =========================================================================
+
+@Composable
+fun CompaneroJirachiApi(
+    pokemonViewModel: PokemonViewModel,
+    modifier: Modifier = Modifier
+) {
+    val pokemonActual by pokemonViewModel.pokemonActual.collectAsState()
+
+    val spriteUrl = pokemonActual?.sprites?.frontDefault
+        ?: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/385.png"
+
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.Center
+    ) {
+        if (spriteUrl.isNotEmpty()) {
+            AsyncImage(
+                model = spriteUrl,
+                contentDescription = "Jirachi API REST Estelar",
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            IconoEstrellaPreguntaKawaii(modifier = Modifier.fillMaxSize())
         }
     }
 }
@@ -716,43 +861,58 @@ private fun IlustracionOpcionKawaii(
     val texto = opcion.lowercase()
 
     when {
-        // LENGUAJE U1: Ratón, Cazador, Pájaro
         "ratón" in texto -> DibujoRatonKawaii(modifier)
         "cazador" in texto -> DibujoSombreroExploradorKawaii(modifier)
         "pájaro" in texto -> DibujoPajaroKawaii(modifier)
-
-        // LENGUAJE U2: Minúscula, Mayúscula, Número
         "minúscula" in texto -> DibujoFichaTextoKawaii(texto = "a", colorFondo = Color(0xFFFFCCBC), colorBorde = Color(0xFFE64A19), modifier = modifier)
         "mayúscula" in texto -> DibujoFichaTextoKawaii(texto = "A", colorFondo = Color(0xFFC8E6C9), colorBorde = Color(0xFF2E7D32), modifier = modifier)
         "número" in texto -> DibujoFichaTextoKawaii(texto = "123", colorFondo = Color(0xFFBBDEFB), colorBorde = Color(0xFF1565C0), modifier = modifier)
-
-        // CIENCIAS U1: Estómago, Pulmones, Corazón
         "corazón" in texto -> DibujoCorazonKawaii(modifier)
         "pulmones" in texto -> DibujoPulmonesKawaii(modifier)
         "estómago" in texto -> DibujoManzanaKawaii(modifier)
-
-        // CIENCIAS U2: Cóndor, León, Canguro (bien caracterizados)
         "cóndor" in texto -> DibujoCondorKawaii(modifier)
         "león" in texto -> DibujoLeonKawaii(modifier)
         "canguro" in texto -> DibujoCanguroKawaii(modifier)
-
-        // HISTORIA U1: Bomberos, Hospital, Biblioteca
         "bomberos" in texto -> DibujoCascoBomberoKawaii(modifier)
         "hospital" in texto -> DibujoHospitalKawaii(modifier)
-        "biblioteca" in texto -> IconoLibroInfantil(modifier)
-
-        // HISTORIA U2: Chonos y Yaganes (canoa), Mayas (llama), Aztecas (pirámide)
+        "biblioteca" in texto -> DibujoLibritoVectorialKawaii(modifier)
         "yaganes" in texto || "chonos" in texto -> DibujoCanoaKawaii(modifier)
         "mayas" in texto -> DibujoLlamaKawaii(modifier)
         "aztecas" in texto -> DibujoPiramideKawaii(modifier)
-
-        // MATEMÁTICA (Números con ficha kawaii colorida)
         else -> DibujoFichaTextoKawaii(
             texto = opcion.take(3),
             colorFondo = Color(0xFFFFF59D),
             colorBorde = Color(0xFFF57F17),
             modifier = modifier
         )
+    }
+}
+
+@Composable
+private fun DibujoLibritoVectorialKawaii(modifier: Modifier) {
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        drawRoundRect(
+            color = Color(0xFF2196F3),
+            topLeft = Offset(w * 0.16f, h * 0.18f),
+            size = Size(w * 0.68f, h * 0.70f),
+            cornerRadius = CornerRadius(w * 0.12f)
+        )
+        drawRoundRect(
+            color = Color(0xFF0D47A1),
+            topLeft = Offset(w * 0.16f, h * 0.18f),
+            size = Size(w * 0.16f, h * 0.70f),
+            cornerRadius = CornerRadius(w * 0.08f)
+        )
+        drawRoundRect(
+            color = Color(0xFF1E1E1E),
+            topLeft = Offset(w * 0.16f, h * 0.18f),
+            size = Size(w * 0.68f, h * 0.70f),
+            cornerRadius = CornerRadius(w * 0.12f),
+            style = Stroke(width = w * 0.045f)
+        )
+        dibujarCaritaMini(w * 0.53f, h * 0.54f, w * 0.20f)
     }
 }
 
@@ -777,61 +937,10 @@ private fun DibujoPajaroKawaii(modifier: Modifier) {
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
-
-        drawLine(
-            color = Color(0xFFEF6C00),
-            start = Offset(w * 0.40f, h * 0.78f),
-            end = Offset(w * 0.40f, h * 0.88f),
-            strokeWidth = w * 0.05f,
-            cap = StrokeCap.Round
-        )
-        drawLine(
-            color = Color(0xFFEF6C00),
-            start = Offset(w * 0.60f, h * 0.78f),
-            end = Offset(w * 0.60f, h * 0.88f),
-            strokeWidth = w * 0.05f,
-            cap = StrokeCap.Round
-        )
-
-        val alaIzq = Path().apply {
-            moveTo(w * 0.25f, h * 0.46f)
-            quadraticTo(w * 0.04f, h * 0.34f, w * 0.14f, h * 0.62f)
-            close()
-        }
-        drawPath(alaIzq, Color(0xFF0288D1))
-        drawPath(alaIzq, Color(0xFF01579B), style = Stroke(w * 0.035f))
-
-        val alaDer = Path().apply {
-            moveTo(w * 0.75f, h * 0.46f)
-            quadraticTo(w * 0.96f, h * 0.34f, w * 0.86f, h * 0.62f)
-            close()
-        }
-        drawPath(alaDer, Color(0xFF0288D1))
-        drawPath(alaDer, Color(0xFF01579B), style = Stroke(w * 0.035f))
-
-        drawOval(
-            color = Color(0xFF29B6F6),
-            topLeft = Offset(w * 0.42f, h * 0.10f),
-            size = Size(w * 0.10f, h * 0.16f)
-        )
-        drawOval(
-            color = Color(0xFF29B6F6),
-            topLeft = Offset(w * 0.50f, h * 0.12f),
-            size = Size(w * 0.10f, h * 0.15f)
-        )
-
-        drawOval(
-            color = Color(0xFF4FC3F7),
-            topLeft = Offset(w * 0.22f, h * 0.22f),
-            size = Size(w * 0.56f, h * 0.58f)
-        )
-        drawOval(
-            color = Color(0xFF01579B),
-            topLeft = Offset(w * 0.22f, h * 0.22f),
-            size = Size(w * 0.56f, h * 0.58f),
-            style = Stroke(w * 0.04f)
-        )
-
+        drawLine(color = Color(0xFFEF6C00), start = Offset(w * 0.40f, h * 0.78f), end = Offset(w * 0.40f, h * 0.88f), strokeWidth = w * 0.05f, cap = StrokeCap.Round)
+        drawLine(color = Color(0xFFEF6C00), start = Offset(w * 0.60f, h * 0.78f), end = Offset(w * 0.60f, h * 0.88f), strokeWidth = w * 0.05f, cap = StrokeCap.Round)
+        drawOval(color = Color(0xFF4FC3F7), topLeft = Offset(w * 0.22f, h * 0.22f), size = Size(w * 0.56f, h * 0.58f))
+        drawOval(color = Color(0xFF01579B), topLeft = Offset(w * 0.22f, h * 0.22f), size = Size(w * 0.56f, h * 0.58f), style = Stroke(w * 0.04f))
         val pico = Path().apply {
             moveTo(w * 0.43f, h * 0.54f)
             lineTo(w * 0.57f, h * 0.54f)
@@ -839,8 +948,6 @@ private fun DibujoPajaroKawaii(modifier: Modifier) {
             close()
         }
         drawPath(pico, Color(0xFFFF9800))
-        drawPath(pico, Color(0xFFE65100), style = Stroke(w * 0.025f))
-
         dibujarCaritaMini(w * 0.50f, h * 0.44f, w * 0.20f)
     }
 }
@@ -895,76 +1002,13 @@ private fun DibujoManzanaKawaii(modifier: Modifier) {
     }
 }
 
-// =========================================================================
-// CÓNDOR, LEÓN Y CANGURO KAWAII (CIENCIAS UNIDAD 2)
-// =========================================================================
-
 @Composable
 private fun DibujoCondorKawaii(modifier: Modifier) {
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
-
-        // 1. Alas negras desplegadas a los costados
-        val alaIzq = Path().apply {
-            moveTo(w * 0.26f, h * 0.56f)
-            quadraticTo(w * 0.02f, h * 0.36f, w * 0.10f, h * 0.72f)
-            lineTo(w * 0.28f, h * 0.74f)
-            close()
-        }
-        drawPath(alaIzq, Color(0xFF263238))
-        drawPath(alaIzq, Color(0xFF1E1E1E), style = Stroke(w * 0.03f))
-
-        val alaDer = Path().apply {
-            moveTo(w * 0.74f, h * 0.56f)
-            quadraticTo(w * 0.98f, h * 0.36f, w * 0.90f, h * 0.72f)
-            lineTo(w * 0.72f, h * 0.74f)
-            close()
-        }
-        drawPath(alaDer, Color(0xFF263238))
-        drawPath(alaDer, Color(0xFF1E1E1E), style = Stroke(w * 0.03f))
-
-        // 2. Collarín de plumas blancas esponjosas
-        drawCircle(color = Color(0xFFECEFF1), radius = w * 0.13f, center = Offset(w * 0.34f, h * 0.74f))
-        drawCircle(color = Color(0xFFECEFF1), radius = w * 0.14f, center = Offset(w * 0.50f, h * 0.76f))
-        drawCircle(color = Color(0xFFECEFF1), radius = w * 0.13f, center = Offset(w * 0.66f, h * 0.74f))
-        drawRoundRect(
-            color = Color(0xFFB0BEC5),
-            topLeft = Offset(w * 0.22f, h * 0.66f),
-            size = Size(w * 0.56f, h * 0.17f),
-            cornerRadius = CornerRadius(w * 0.09f),
-            style = Stroke(w * 0.03f)
-        )
-
-        // 3. Cresta rosada característica del cóndor macho arriba
-        drawRoundRect(
-            color = Color(0xFFEC407A),
-            topLeft = Offset(w * 0.41f, h * 0.11f),
-            size = Size(w * 0.18f, h * 0.14f),
-            cornerRadius = CornerRadius(w * 0.07f)
-        )
-        drawRoundRect(
-            color = Color(0xFF1E1E1E),
-            topLeft = Offset(w * 0.41f, h * 0.11f),
-            size = Size(w * 0.18f, h * 0.14f),
-            cornerRadius = CornerRadius(w * 0.07f),
-            style = Stroke(w * 0.025f)
-        )
-
-        // 4. Cabecita gris oscura del cóndor
         drawCircle(color = Color(0xFF37474F), radius = w * 0.27f, center = Offset(w * 0.50f, h * 0.44f))
         drawCircle(color = Color(0xFF1E1E1E), radius = w * 0.27f, center = Offset(w * 0.50f, h * 0.44f), style = Stroke(w * 0.035f))
-
-        // 5. Piquito curvo amarillo/marfil
-        val pico = Path().apply {
-            moveTo(w * 0.43f, h * 0.52f)
-            lineTo(w * 0.57f, h * 0.52f)
-            lineTo(w * 0.50f, h * 0.64f)
-            close()
-        }
-        drawPath(pico, Color(0xFFFFCA28))
-        drawPath(pico, Color(0xFF1E1E1E), style = Stroke(w * 0.025f))
-
         dibujarCaritaMini(w * 0.50f, h * 0.42f, w * 0.17f)
     }
 }
@@ -974,43 +1018,9 @@ private fun DibujoLeonKawaii(modifier: Modifier) {
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
-        val cx = w * 0.50f
-        val cy = h * 0.52f
-
-        // 1. Melena ondulada en forma de pétalos anaranjados
-        for (i in 0 until 10) {
-            val ang = (i * 36.0) * (PI / 180.0)
-            val px = cx + (w * 0.30f * cos(ang)).toFloat()
-            val py = cy + (h * 0.30f * sin(ang)).toFloat()
-            drawCircle(color = Color(0xFFE65100), radius = w * 0.14f, center = Offset(px, py))
-        }
-        drawCircle(color = Color(0xFFEF6C00), radius = w * 0.34f, center = Offset(cx, cy))
-
-        // 2. Orejitas redondas asomando arriba
-        drawCircle(color = Color(0xFFFFCA28), radius = w * 0.11f, center = Offset(w * 0.28f, h * 0.28f))
-        drawCircle(color = Color(0xFF1E1E1E), radius = w * 0.11f, center = Offset(w * 0.28f, h * 0.28f), style = Stroke(w * 0.03f))
-        drawCircle(color = Color(0xFFFFCA28), radius = w * 0.11f, center = Offset(w * 0.72f, h * 0.28f))
-        drawCircle(color = Color(0xFF1E1E1E), radius = w * 0.11f, center = Offset(w * 0.72f, h * 0.28f), style = Stroke(w * 0.03f))
-
-        // 3. Carita dorada del león
-        drawCircle(color = Color(0xFFFFD54F), radius = w * 0.26f, center = Offset(cx, cy))
-        drawCircle(color = Color(0xFF1E1E1E), radius = w * 0.26f, center = Offset(cx, cy), style = Stroke(w * 0.035f))
-
-        // 4. Hociquito crema y naricita triangular café
-        drawOval(
-            color = Color(0xFFFFF8E1),
-            topLeft = Offset(w * 0.38f, h * 0.53f),
-            size = Size(w * 0.24f, h * 0.15f)
-        )
-        val nariz = Path().apply {
-            moveTo(w * 0.46f, h * 0.54f)
-            lineTo(w * 0.54f, h * 0.54f)
-            lineTo(w * 0.50f, h * 0.60f)
-            close()
-        }
-        drawPath(nariz, Color(0xFF5D4037))
-
-        dibujarCaritaMini(cx, cy - h * 0.02f, w * 0.17f)
+        drawCircle(color = Color(0xFFFFD54F), radius = w * 0.26f, center = Offset(w * 0.50f, h * 0.52f))
+        drawCircle(color = Color(0xFF1E1E1E), radius = w * 0.26f, center = Offset(w * 0.50f, h * 0.52f), style = Stroke(w * 0.035f))
+        dibujarCaritaMini(w * 0.50f, h * 0.50f, w * 0.17f)
     }
 }
 
@@ -1019,44 +1029,11 @@ private fun DibujoCanguroKawaii(modifier: Modifier) {
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
-
-        // 1. Orejas largas de canguro con interior rosado
-        drawOval(color = Color(0xFFA1887F), topLeft = Offset(w * 0.24f, h * 0.08f), size = Size(w * 0.15f, h * 0.36f))
-        drawOval(color = Color(0xFFF8BBD0), topLeft = Offset(w * 0.28f, h * 0.14f), size = Size(w * 0.07f, h * 0.24f))
-        drawOval(color = Color(0xFF1E1E1E), topLeft = Offset(w * 0.24f, h * 0.08f), size = Size(w * 0.15f, h * 0.36f), style = Stroke(w * 0.03f))
-
-        drawOval(color = Color(0xFFA1887F), topLeft = Offset(w * 0.61f, h * 0.08f), size = Size(w * 0.15f, h * 0.36f))
-        drawOval(color = Color(0xFFF8BBD0), topLeft = Offset(w * 0.65f, h * 0.14f), size = Size(w * 0.07f, h * 0.24f))
-        drawOval(color = Color(0xFF1E1E1E), topLeft = Offset(w * 0.61f, h * 0.08f), size = Size(w * 0.15f, h * 0.36f), style = Stroke(w * 0.03f))
-
-        // 2. Cabecita ovalada color caramelo/tierra
-        drawOval(
-            color = Color(0xFFBCAAA4),
-            topLeft = Offset(w * 0.21f, h * 0.32f),
-            size = Size(w * 0.58f, h * 0.54f)
-        )
-        drawOval(
-            color = Color(0xFF1E1E1E),
-            topLeft = Offset(w * 0.21f, h * 0.32f),
-            size = Size(w * 0.58f, h * 0.54f),
-            style = Stroke(w * 0.035f)
-        )
-
-        // 3. Hociquito claro alargado de canguro + nariz oscura
-        drawOval(
-            color = Color(0xFFEFEBE9),
-            topLeft = Offset(w * 0.34f, h * 0.58f),
-            size = Size(w * 0.32f, h * 0.22f)
-        )
-        drawCircle(color = Color(0xFF4E342E), radius = w * 0.055f, center = Offset(w * 0.50f, h * 0.63f))
-
+        drawOval(color = Color(0xFFBCAAA4), topLeft = Offset(w * 0.21f, h * 0.32f), size = Size(w * 0.58f, h * 0.54f))
+        drawOval(color = Color(0xFF1E1E1E), topLeft = Offset(w * 0.21f, h * 0.32f), size = Size(w * 0.58f, h * 0.54f), style = Stroke(w * 0.035f))
         dibujarCaritaMini(w * 0.50f, h * 0.52f, w * 0.19f)
     }
 }
-
-// =========================================================================
-// HISTORIA UNIDAD 1 Y UNIDAD 2 (BOMBERO, HOSPITAL, CANOA, LLAMA, PIRÁMIDE)
-// =========================================================================
 
 @Composable
 private fun DibujoCascoBomberoKawaii(modifier: Modifier) {
@@ -1065,7 +1042,6 @@ private fun DibujoCascoBomberoKawaii(modifier: Modifier) {
         val h = size.height
         drawCircle(color = Color(0xFFE53935), radius = w * 0.32f, center = Offset(w * 0.50f, h * 0.50f))
         drawRoundRect(color = Color(0xFFB71C1C), topLeft = Offset(w * 0.14f, h * 0.58f), size = Size(w * 0.72f, h * 0.14f), cornerRadius = CornerRadius(w * 0.07f))
-        drawCircle(color = Color(0xFFFFD54F), radius = w * 0.09f, center = Offset(w * 0.50f, h * 0.32f))
         dibujarCaritaMini(w * 0.50f, h * 0.50f, w * 0.17f)
     }
 }
@@ -1077,7 +1053,6 @@ private fun DibujoHospitalKawaii(modifier: Modifier) {
         val h = size.height
         drawRoundRect(color = Color(0xFFE3F2FD), topLeft = Offset(w * 0.20f, h * 0.20f), size = Size(w * 0.60f, h * 0.60f), cornerRadius = CornerRadius(w * 0.12f))
         drawRect(color = Color(0xFFE53935), topLeft = Offset(w * 0.45f, h * 0.26f), size = Size(w * 0.10f, h * 0.24f))
-        drawRect(color = Color(0xFFE53935), topLeft = Offset(w * 0.38f, h * 0.33f), size = Size(w * 0.24f, h * 0.10f))
         dibujarCaritaMini(w * 0.50f, h * 0.64f, w * 0.16f)
     }
 }
@@ -1087,7 +1062,6 @@ private fun DibujoCanoaKawaii(modifier: Modifier) {
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
-        drawRoundRect(color = Color(0xFF4FC3F7), topLeft = Offset(w * 0.12f, h * 0.66f), size = Size(w * 0.76f, h * 0.16f), cornerRadius = CornerRadius(w * 0.08f))
         val canoa = Path().apply {
             moveTo(w * 0.14f, h * 0.44f)
             lineTo(w * 0.86f, h * 0.44f)
@@ -1105,58 +1079,12 @@ private fun DibujoLlamaKawaii(modifier: Modifier) {
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
-
-        // 1. Orejas largas tipo banana arriba
-        drawOval(color = Color(0xFFFFF8E1), topLeft = Offset(w * 0.27f, h * 0.08f), size = Size(w * 0.12f, h * 0.28f))
-        drawOval(color = Color(0xFFF8BBD0), topLeft = Offset(w * 0.30f, h * 0.13f), size = Size(w * 0.06f, h * 0.18f))
-        drawOval(color = Color(0xFF1E1E1E), topLeft = Offset(w * 0.27f, h * 0.08f), size = Size(w * 0.12f, h * 0.28f), style = Stroke(w * 0.03f))
-
-        drawOval(color = Color(0xFFFFF8E1), topLeft = Offset(w * 0.61f, h * 0.08f), size = Size(w * 0.12f, h * 0.28f))
-        drawOval(color = Color(0xFFF8BBD0), topLeft = Offset(w * 0.64f, h * 0.13f), size = Size(w * 0.06f, h * 0.18f))
-        drawOval(color = Color(0xFF1E1E1E), topLeft = Offset(w * 0.61f, h * 0.08f), size = Size(w * 0.12f, h * 0.28f), style = Stroke(w * 0.03f))
-
-        // 2. Cuellito lanudo abajo
-        drawRoundRect(
-            color = Color(0xFFFFF3E0),
-            topLeft = Offset(w * 0.34f, h * 0.66f),
-            size = Size(w * 0.32f, h * 0.24f),
-            cornerRadius = CornerRadius(w * 0.10f)
-        )
-
-        // 3. Bufanda / pompón andino colorido en el cuello
-        drawRoundRect(
-            color = Color(0xFFE53935),
-            topLeft = Offset(w * 0.30f, h * 0.72f),
-            size = Size(w * 0.40f, h * 0.09f),
-            cornerRadius = CornerRadius(w * 0.04f)
-        )
-        drawCircle(color = Color(0xFFFFCA28), radius = w * 0.04f, center = Offset(w * 0.38f, h * 0.76f))
-        drawCircle(color = Color(0xFF29B6F6), radius = w * 0.04f, center = Offset(w * 0.50f, h * 0.76f))
-        drawCircle(color = Color(0xFF66BB6A), radius = w * 0.04f, center = Offset(w * 0.62f, h * 0.76f))
-
-        // 4. Carita esponjosa de la llama
         drawRoundRect(
             color = Color(0xFFFFF8E1),
             topLeft = Offset(w * 0.22f, h * 0.28f),
             size = Size(w * 0.56f, h * 0.44f),
             cornerRadius = CornerRadius(w * 0.22f)
         )
-        drawRoundRect(
-            color = Color(0xFF1E1E1E),
-            topLeft = Offset(w * 0.22f, h * 0.28f),
-            size = Size(w * 0.56f, h * 0.44f),
-            cornerRadius = CornerRadius(w * 0.22f),
-            style = Stroke(w * 0.035f)
-        )
-
-        // 5. Hociquito y naricita de llama
-        drawOval(
-            color = Color(0xFFFFE0B2),
-            topLeft = Offset(w * 0.38f, h * 0.52f),
-            size = Size(w * 0.24f, h * 0.14f)
-        )
-        drawCircle(color = Color(0xFF5D4037), radius = w * 0.04f, center = Offset(w * 0.50f, h * 0.56f))
-
         dibujarCaritaMini(w * 0.50f, h * 0.46f, w * 0.18f)
     }
 }
@@ -1173,7 +1101,6 @@ private fun DibujoPiramideKawaii(modifier: Modifier) {
             close()
         }
         drawPath(piramide, Color(0xFFFFB74D))
-        drawPath(piramide, Color(0xFF1E1E1E), style = Stroke(w * 0.04f))
         dibujarCaritaMini(w * 0.50f, h * 0.58f, w * 0.16f)
     }
 }
