@@ -1,5 +1,6 @@
 package com.example.explora2.ui.screens.alumno
 
+import android.media.MediaPlayer
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -30,6 +31,8 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -64,6 +67,32 @@ data class PreguntaEvaluacion(
     val explicacion: String
 )
 
+private fun reproducirCryEvaluacion(
+    pokemonId: Int,
+    onPlayerCreated: (MediaPlayer) -> Unit
+) {
+    val urlAudio = "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/$pokemonId.ogg"
+    try {
+        val player = MediaPlayer().apply {
+            setDataSource(urlAudio)
+            setOnPreparedListener {
+                onPlayerCreated(it)
+                it.start()
+            }
+            setOnCompletionListener {
+                it.release()
+            }
+            setOnErrorListener { mp, _, _ ->
+                mp.release()
+                true
+            }
+            prepareAsync()
+        }
+        onPlayerCreated(player)
+    } catch (_: Exception) {
+    }
+}
+
 @Composable
 fun RendirPruebaScreen(
     navController: NavController,
@@ -87,7 +116,6 @@ fun RendirPruebaScreen(
 
     val audioHelper = remember { Audio(contexto) }
 
-    // Al ingresar a la prueba, cargamos a Jirachi (ID 385) desde la API REST
     LaunchedEffect(Unit) {
         pokemonViewModel.cargarPokemonEspecifico(385, "¡Jirachi te desea mucha suerte en tu desafío!")
     }
@@ -143,7 +171,6 @@ fun RendirPruebaContent(
     val colorBordeNegro = Color(0xFF1E1E1E)
 
     val evaluaciones = listOf(
-        // LENGUAJE
         PreguntaEvaluacion(
             asignatura = "Lenguaje",
             unidad = "Unidad 1",
@@ -162,8 +189,6 @@ fun RendirPruebaContent(
             respuestaCorrecta = 1,
             explicacion = "Toda oración comienza con mayúscula y termina con punto final."
         ),
-
-        // MATEMÁTICA
         PreguntaEvaluacion(
             asignatura = "Matemática",
             unidad = "Unidad 1",
@@ -182,8 +207,6 @@ fun RendirPruebaContent(
             respuestaCorrecta = 1,
             explicacion = "Siguiendo el patrón de 10 en 10, después del 40 viene el 50."
         ),
-
-        // CIENCIAS
         PreguntaEvaluacion(
             asignatura = "Ciencias",
             unidad = "Unidad 1",
@@ -202,8 +225,6 @@ fun RendirPruebaContent(
             respuestaCorrecta = 0,
             explicacion = "El cóndor es un ave emblemática que habita la cordillera de los Andes."
         ),
-
-        // HISTORIA
         PreguntaEvaluacion(
             asignatura = "Historia",
             unidad = "Unidad 1",
@@ -235,8 +256,8 @@ fun RendirPruebaContent(
     var evaluacionEnviada by remember { mutableStateOf(false) }
     var notaCalculada by remember { mutableStateOf(0) }
 
-    // Estados para mostrar a Jirachi en grande a toda pantalla al acertar
     var mostrarJirachiPantallaCompleta by remember { mutableStateOf(false) }
+    var mostrarDarkraiPantallaCompleta by remember { mutableStateOf(false) }
     var mensajeCelebracionJirachi by remember { mutableStateOf("¡Bien hecho!") }
 
     val letrasOpciones = listOf("A", "B", "C")
@@ -364,7 +385,6 @@ fun RendirPruebaContent(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // 1. SELECTOR DE UNIDAD TIPO PÍLDORA KAWAII CON BORDE NEGRO
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -378,6 +398,7 @@ fun RendirPruebaContent(
                                 respuestaSeleccionada = null
                                 evaluacionEnviada = false
                                 mostrarJirachiPantallaCompleta = false
+                                mostrarDarkraiPantallaCompleta = false
                             },
                             shape = RoundedCornerShape(16.dp),
                             colors = FilterChipDefaults.filterChipColors(
@@ -404,7 +425,6 @@ fun RendirPruebaContent(
                     }
                 }
 
-                // 2. TARJETA DE INTENTOS RESTANTES CON BORDE NEGRO
                 Card(
                     shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(
@@ -460,7 +480,6 @@ fun RendirPruebaContent(
                     }
                 }
 
-                // 3. TARJETA KAWAII DE LA PREGUNTA Y ALTERNATIVAS CON JIRACHI API REST
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -593,7 +612,6 @@ fun RendirPruebaContent(
                     }
                 }
 
-                // 4. BOTÓN DE ENTREGA KAWAII
                 Button(
                     onClick = {
                         if (respuestaSeleccionada != null && intentosRestantes > 0) {
@@ -622,8 +640,11 @@ fun RendirPruebaContent(
                                 }
                                 pokemonViewModel.cargarPokemonEspecifico(385, mensajeCelebracionJirachi)
                                 mostrarJirachiPantallaCompleta = true
+                                mostrarDarkraiPantallaCompleta = false
                                 onReproducirAudio("$mensajeCelebracionJirachi Respuesta correcta.")
                             } else {
+                                mostrarDarkraiPantallaCompleta = true
+                                mostrarJirachiPantallaCompleta = false
                                 onVibrarError()
                                 onReproducirAudio("Respuesta incorrecta. " + evaluacionActual.explicacion)
                             }
@@ -649,7 +670,6 @@ fun RendirPruebaContent(
                     )
                 }
 
-                // 5. TARJETA DE RESULTADO Y RETROALIMENTACIÓN KAWAII CON BORDE NEGRO
                 if (evaluacionEnviada) {
                     val aprobado = notaCalculada >= 4
                     Card(
@@ -717,6 +737,7 @@ fun RendirPruebaContent(
                                         evaluacionEnviada = false
                                         respuestaSeleccionada = null
                                         mostrarJirachiPantallaCompleta = false
+                                        mostrarDarkraiPantallaCompleta = false
                                     },
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -749,79 +770,249 @@ fun RendirPruebaContent(
             }
         }
 
-        // PANTALLA COMPLETA DE CELEBRACIÓN CON JIRACHI (ID 385) AL RESPONDER BIEN
-        if (mostrarJirachiPantallaCompleta) {
-            Box(
+        // COMPONENTE PANTALLA COMPLETA JIRACHI (ID 385) - RESPUESTA CORRECTA
+        ComponenteJirachiPantallaCompleta(
+            visible = mostrarJirachiPantallaCompleta,
+            mensaje = mensajeCelebracionJirachi,
+            colorBordeNegro = colorBordeNegro,
+            onContinuar = { mostrarJirachiPantallaCompleta = false }
+        )
+
+        // COMPONENTE PANTALLA COMPLETA DARKRAI (ID 491) - RESPUESTA INCORRECTA
+        ComponenteDarkraiPantallaCompleta(
+            visible = mostrarDarkraiPantallaCompleta,
+            explicacion = evaluacionActual.explicacion,
+            puedeReintentar = intentosRestantes > 0,
+            colorBordeNegro = colorBordeNegro,
+            onContinuar = { mostrarDarkraiPantallaCompleta = false }
+        )
+    }
+}
+
+// =========================================================================
+// COMPONENTES POKÉMON DE EVALUACIÓN (JIRACHI ID 385 Y DARKRAI ID 491)
+// =========================================================================
+
+@Composable
+fun ComponenteJirachiPantallaCompleta(
+    visible: Boolean,
+    mensaje: String,
+    colorBordeNegro: Color,
+    onContinuar: () -> Unit
+) {
+    if (!visible) return
+
+    var yaSonoAlPasarDedo by remember { mutableStateOf(false) }
+    var reproductorActivo by remember { mutableStateOf<MediaPlayer?>(null) }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            reproductorActivo?.runCatching {
+                if (isPlaying) stop()
+                release()
+            }
+            reproductorActivo = null
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFFFFFDE7).copy(alpha = 0.98f),
+                        Color(0xFFE8F5E9).copy(alpha = 0.98f)
+                    )
+                )
+            )
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceEvenly
+        ) {
+            Text(
+                text = mensaje,
+                fontSize = 34.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color(0xFF1B5E20),
+                textAlign = TextAlign.Center
+            )
+
+            AsyncImage(
+                model = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/385.png",
+                placeholder = painterResource(id = R.drawable.poke),
+                error = painterResource(id = R.drawable.poke),
+                contentDescription = "Jirachi celebrando respuesta correcta",
                 modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color(0xFFFFFDE7).copy(alpha = 0.98f),
-                                Color(0xFFE8F5E9).copy(alpha = 0.98f)
-                            )
-                        )
-                    )
-                    .padding(24.dp),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .height(290.dp)
+                    .pointerInput(385) {
+                        awaitPointerEventScope {
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                when (event.type) {
+                                    PointerEventType.Press, PointerEventType.Move -> {
+                                        if (!yaSonoAlPasarDedo) {
+                                            yaSonoAlPasarDedo = true
+                                            reproducirCryEvaluacion(385) { mp ->
+                                                reproductorActivo = mp
+                                            }
+                                        }
+                                    }
+                                    PointerEventType.Release, PointerEventType.Exit -> {
+                                        yaSonoAlPasarDedo = false
+                                    }
+                                }
+                            }
+                        }
+                    },
+                contentScale = ContentScale.Fit
+            )
+
+            Text(
+                text = "¡Buen trabajo! 🌟",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF2E7D32),
+                textAlign = TextAlign.Center
+            )
+
+            Button(
+                onClick = onContinuar,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(58.dp),
+                shape = RoundedCornerShape(20.dp),
+                border = BorderStroke(3.dp, colorBordeNegro),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF43A047),
+                    contentColor = Color.White
+                )
             ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(20.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(210.dp)
-                            .shadow(10.dp, CircleShape)
-                            .clip(CircleShape)
-                            .background(Color.White)
-                            .border(5.dp, colorBordeNegro, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        AsyncImage(
-                            model = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/385.png",
-                            contentDescription = "Jirachi celebrando",
-                            modifier = Modifier.size(175.dp),
-                            contentScale = ContentScale.Fit
-                        )
-                    }
-
-                    Text(
-                        text = mensajeCelebracionJirachi,
-                        fontSize = 36.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color(0xFF1B5E20),
-                        textAlign = TextAlign.Center
-                    )
-
-                    Button(
-                        onClick = { mostrarJirachiPantallaCompleta = false },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(58.dp),
-                        shape = RoundedCornerShape(20.dp),
-                        border = BorderStroke(3.dp, colorBordeNegro),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF43A047),
-                            contentColor = Color.White
-                        )
-                    ) {
-                        Text(
-                            text = "¡Seguir avanzando! 🚀",
-                            fontSize = 19.sp,
-                            fontWeight = FontWeight.ExtraBold
-                        )
-                    }
-                }
+                Text(
+                    text = "¡Seguir avanzando! 🚀",
+                    fontSize = 19.sp,
+                    fontWeight = FontWeight.ExtraBold
+                )
             }
         }
     }
 }
 
-// =========================================================================
-// COMPONENTE API REST: JIRACHI ESTELAR (ID 385 DE LA POKÉAPI)
-// =========================================================================
+@Composable
+fun ComponenteDarkraiPantallaCompleta(
+    visible: Boolean,
+    explicacion: String,
+    puedeReintentar: Boolean,
+    colorBordeNegro: Color,
+    onContinuar: () -> Unit
+) {
+    if (!visible) return
+
+    var yaSonoAlPasarDedo by remember { mutableStateOf(false) }
+    var reproductorActivo by remember { mutableStateOf<MediaPlayer?>(null) }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            reproductorActivo?.runCatching {
+                if (isPlaying) stop()
+                release()
+            }
+            reproductorActivo = null
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFFEDE7F6).copy(alpha = 0.98f),
+                        Color(0xFFD1C4E9).copy(alpha = 0.98f)
+                    )
+                )
+            )
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceEvenly
+        ) {
+            Text(
+                text = "¡Casi lo logras!",
+                fontSize = 34.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color(0xFF311B92),
+                textAlign = TextAlign.Center
+            )
+
+            AsyncImage(
+                model = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/491.png",
+                placeholder = painterResource(id = R.drawable.poke),
+                error = painterResource(id = R.drawable.poke),
+                contentDescription = "Darkrai al responder de forma incorrecta",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(290.dp)
+                    .pointerInput(491) {
+                        awaitPointerEventScope {
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                when (event.type) {
+                                    PointerEventType.Press, PointerEventType.Move -> {
+                                        if (!yaSonoAlPasarDedo) {
+                                            yaSonoAlPasarDedo = true
+                                            reproducirCryEvaluacion(491) { mp ->
+                                                reproductorActivo = mp
+                                            }
+                                        }
+                                    }
+                                    PointerEventType.Release, PointerEventType.Exit -> {
+                                        yaSonoAlPasarDedo = false
+                                    }
+                                }
+                            }
+                        }
+                    },
+                contentScale = ContentScale.Fit
+            )
+
+            Text(
+                text = explicacion,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF1E1E1E),
+                textAlign = TextAlign.Center
+            )
+
+            Button(
+                onClick = onContinuar,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(58.dp),
+                shape = RoundedCornerShape(20.dp),
+                border = BorderStroke(3.dp, colorBordeNegro),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFFFB300),
+                    contentColor = colorBordeNegro
+                )
+            ) {
+                Text(
+                    text = if (puedeReintentar) "¡Intentar de nuevo! 💪" else "Entendido 👍",
+                    fontSize = 19.sp,
+                    fontWeight = FontWeight.ExtraBold
+                )
+            }
+        }
+    }
+}
 
 @Composable
 fun CompaneroJirachiApi(
@@ -1207,3 +1398,6 @@ fun RendirPruebaScreenPreview() {
         )
     }
 }
+
+
+//actua 

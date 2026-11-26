@@ -5,7 +5,8 @@ import com.google.gson.annotations.SerializedName
 data class PokemonResponse(
     val id: Int,
     val name: String,
-    val sprites: PokemonSprites
+    val sprites: PokemonSprites,
+    val cries: PokemonCries? = null
 )
 
 data class PokemonSprites(
@@ -22,4 +23,9 @@ data class PokemonOtherSprites(
 data class OfficialArtwork(
     @SerializedName("front_default")
     val frontDefault: String?
+)
+
+data class PokemonCries(
+    val latest: String?,
+    val legacy: String?
 )
