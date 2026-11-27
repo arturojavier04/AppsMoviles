@@ -127,4 +127,131 @@ class GestionRemotaTest : FunSpec({
         vm.consultarDetalle(47)
         assertTrue(vm.consulta.value.error.orEmpty().contains("ya no está disponible"))
     }
+
+    test("UTP autoriza una planificación sin alterar sus atributos") {
+        val pendiente = plan.copy(
+            validado = true,
+            autorizado = false,
+            asignadoAlumno = false,
+            descripcion = "Leer una fábula"
+        )
+
+        val autorizada = pendiente.copy(autorizado = true)
+
+        coEvery { api.obtenerPorId(47) } returns pendiente
+        coEvery { api.actualizar(47, autorizada) } returns
+                Response.success(autorizada)
+
+        vm.consultarDetalle(47)
+        vm.autorizarPlanificacion(47)
+
+        assertTrue(vm.consulta.value.detalle!!.autorizado)
+        assertFalse(vm.consulta.value.detalle!!.asignadoAlumno)
+        assertFalse(vm.consulta.value.autorizando)
+        assertEquals(
+            autorizada,
+            vm.consulta.value.detalle
+        )
+
+        coVerify(exactly = 1) {
+            api.actualizar(47, autorizada)
+        }
+    }
+
+    test("UTP no autoriza una planificación sin validar") {
+        val invalida = plan.copy(
+            validado = false,
+            autorizado = false
+        )
+
+        coEvery { api.obtenerPorId(47) } returns invalida
+
+        vm.consultarDetalle(47)
+        vm.autorizarPlanificacion(47)
+
+        assertFalse(vm.consulta.value.detalle!!.autorizado)
+        assertNotNull(vm.consulta.value.error)
+        assertFalse(vm.consulta.value.autorizando)
+
+        coVerify(exactly = 0) {
+            api.actualizar(any(), any())
+        }
+    }
+
+    test("un error de conexión no confirma la autorización") {
+        val pendiente = plan.copy(
+            validado = true,
+            autorizado = false
+        )
+
+        coEvery { api.obtenerPorId(47) } returns pendiente
+
+        coEvery {
+            api.actualizar(any(), any())
+        } throws ConnectException()
+
+        vm.consultarDetalle(47)
+        vm.autorizarPlanificacion(47)
+
+        assertFalse(vm.consulta.value.detalle!!.autorizado)
+        assertFalse(vm.consulta.value.autorizando)
+        assertNotNull(vm.consulta.value.error)
+    }
+
+    test("dos pulsaciones simultáneas solo realizan un PUT") {
+        val pendiente = plan.copy(
+            validado = true,
+            autorizado = false
+        )
+
+        val autorizada = pendiente.copy(autorizado = true)
+
+        val respuestaPendiente =
+            CompletableDeferred<Response<PlanificacionDto>>()
+
+        coEvery { api.obtenerPorId(47) } returns pendiente
+
+        coEvery {
+            api.actualizar(47, autorizada)
+        } coAnswers {
+            respuestaPendiente.await()
+        }
+
+        vm.consultarDetalle(47)
+        vm.autorizarPlanificacion(47)
+        vm.autorizarPlanificacion(47)
+
+        assertTrue(vm.consulta.value.autorizando)
+
+        respuestaPendiente.complete(
+            Response.success(autorizada)
+        )
+
+        coVerify(exactly = 1) {
+            api.actualizar(47, autorizada)
+        }
+
+        assertTrue(vm.consulta.value.detalle!!.autorizado)
+        assertFalse(vm.consulta.value.autorizando)
+    }
+
+    test("una planificación ya autorizada no necesita otro PUT") {
+        val autorizada = plan.copy(
+            validado = true,
+            autorizado = true
+        )
+
+        coEvery { api.obtenerPorId(47) } returns autorizada
+
+        vm.consultarDetalle(47)
+        vm.autorizarPlanificacion(47)
+
+        assertTrue(vm.consulta.value.detalle!!.autorizado)
+        assertNull(vm.consulta.value.error)
+
+        coVerify(exactly = 0) {
+            api.actualizar(any(), any())
+        }
+    }
+
 })

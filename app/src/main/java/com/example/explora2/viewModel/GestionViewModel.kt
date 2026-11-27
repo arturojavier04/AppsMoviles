@@ -151,6 +151,7 @@ class GestionViewModel(
     }
 
     fun cargarSolicitudes() {
+        if (_consulta.value.autorizando) return
         consultaActiva?.cancel()
         _consulta.value = ConsultaUtpUiState()
         consultaActiva = viewModelScope.launch {
@@ -165,6 +166,7 @@ class GestionViewModel(
     }
 
     fun consultarDetalle(id: Long) {
+        if (_consulta.value.autorizando) return
         consultaActiva?.cancel()
         _consulta.update { it.copy(cargando = true, detalle = null, error = null) }
         consultaActiva = viewModelScope.launch {
@@ -182,6 +184,82 @@ class GestionViewModel(
     }
 
     // Autorizacion del contenido por UTP (habilita directamente al alumno)
+
+
+    fun autorizarPlanificacion(id: Long) {
+
+        if (_consulta.value.autorizando ||
+            _consulta.value.cargando
+        ) return
+
+        _consulta.update {
+            it.copy(
+                autorizando = true,
+                error = null
+            )
+        }
+
+        viewModelScope.launch {
+            try {
+                val actual = repositorio.obtenerPorId(id)
+
+                if (!actual.validado || !actual.enviadoUtp) {
+                    _consulta.update {
+                        it.copy(
+                            error = "La planificación no está lista para autorizarse."
+                        )
+                    }
+                    return@launch
+                }
+
+                val actualizado = if (actual.autorizado) {
+                    actual
+                } else {
+                    repositorio.actualizar(
+                        id,
+                        actual.copy(autorizado = true)
+                    )
+                }
+
+                if (!actualizado.autorizado) {
+                    throw IllegalStateException(
+                        "El servidor no confirmó la autorización"
+                    )
+                }
+
+                _consulta.update { estado ->
+                    estado.copy(
+                        detalle = actualizado,
+                        solicitudes = estado.solicitudes.map {
+                            if (it.id == id) actualizado else it
+                        },
+                        error = null
+                    )
+                }
+
+            } catch (e: CancellationException) {
+                throw e
+
+            } catch (e: Exception) {
+                val mensaje =
+                    if (e is HttpException && e.code() == 404) {
+                        "La planificación ya no existe."
+                    } else {
+                        "No se pudo confirmar la autorización. Actualiza la lista."
+                    }
+
+                _consulta.update {
+                    it.copy(error = mensaje)
+                }
+
+            } finally {
+                _consulta.update {
+                    it.copy(autorizando = false)
+                }
+            }
+        }
+    }
+
     fun aprobarContenido() {
         _estado.update {
             it.copy(
