@@ -6,15 +6,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.explora2.model.GestionUiState
 import com.example.explora2.navigation.Screen
-import com.example.explora2.repository.ConfiguracionStore
-import kotlinx.coroutines.launch
 import com.example.explora2.model.ConsultaDocenteUiState
+
 
 data class UnidadDocente(
     val titulo: String,
@@ -38,12 +36,9 @@ fun PanelDocenteScreen(
 ) {
 
 
-    val contexto = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val configuracionStore = remember { ConfiguracionStore(contexto) }
+
 
     // Conectado al almacenamiento local persistente (DataStore)
-    val intentosGlobales by configuracionStore.intentosRestantesFlow.collectAsState(initial = 2)
 
     val unidades = listOf(
         UnidadDocente(
@@ -364,38 +359,25 @@ fun PanelDocenteScreen(
 
                         Text(text = "Disponibilidad: ${unidad.disponibilidad}")
                         Text(
-                            text = "Intentos configurados actualmente: $intentosGlobales",
+                            text = "Configuración global de evaluación",
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.primary
                         )
                         Text(text = "Rendimiento: ${unidad.rendimientoPromedio}")
 
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            // Suma persistente
-                            Button(
-                                onClick = {
-                                    scope.launch {
-                                        configuracionStore.guardarIntentoYNota(intentosGlobales + 1, 0)
-                                    }
-                                },
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text("Aumentar Intento (+1)")
-                            }
 
-                            OutlinedButton(
-                                onClick = { navController?.navigate(Screen.ConfiguracionExamen.route) },
-                                enabled = navController != null,
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text("Configurar Prueba")
-                            }
+                        OutlinedButton(
+                            onClick = {
+                                navController?.navigate(
+                                    Screen.ConfiguracionExamen.route
+                                )
+                            },
+                            enabled = navController != null,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Configurar Prueba")
                         }
+
                     }
                 }
             }

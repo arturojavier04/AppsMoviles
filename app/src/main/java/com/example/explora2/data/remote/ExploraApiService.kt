@@ -9,7 +9,7 @@ import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.DELETE
 import retrofit2.http.Path
-
+import com.example.explora2.data.model.ConfiguracionExamenDto
 interface ExploraApiService {
 
     @GET("api/planificaciones")
@@ -35,4 +35,14 @@ interface ExploraApiService {
     suspend fun eliminar(
         @Path("id") id: Long
     ): Response<Unit>
+
+
+    @GET("api/configuracion-examen")
+    suspend fun listarConfiguraciones(): List<ConfiguracionExamenDto>
+
+    @PUT("api/configuracion-examen")
+    suspend fun guardarConfiguracion(
+        @Body datos: ConfiguracionExamenDto
+    ): Response<ConfiguracionExamenDto>
+
 }

@@ -1,3 +1,4 @@
+
 package com.example.explora2.ui.screens.docentes
 
 import androidx.compose.foundation.layout.*
@@ -8,44 +9,44 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
-import com.example.explora2.repository.ConfiguracionStore
-import kotlinx.coroutines.launch
+import com.example.explora2.data.model.ConfiguracionExamenDto
+import com.example.explora2.model.ConfiguracionExamenUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ConfiguracionExamenScreen(navController: NavController? = null) {
-    val contexto = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val configuracionStore = remember { ConfiguracionStore(contexto) }
+fun ConfiguracionExamenScreen(
+    navController: NavController? = null,
+    estado: ConfiguracionExamenUiState,
+    onCambiar: (ConfiguracionExamenDto) -> Unit,
+    onGuardar: () -> Unit,
+    onActualizar: () -> Unit
+) {
 
-    // Lee los intentos reales guardados en el almacenamiento local del teléfono
-    val intentosGuardados by configuracionStore.intentosRestantesFlow.collectAsState(initial = 2)
+    val datos = estado.borrador
 
-    var intentosPermitidos by remember { mutableStateOf(intentosGuardados) }
-    var fechaInicio by remember { mutableStateOf("01/11/2026") }
-    var fechaFin by remember { mutableStateOf("15/11/2026") }
-    var versionSeleccionada by remember { mutableStateOf("v1.2") }
-    var mensajeGuardado by remember { mutableStateOf(false) }
-
-    // Sincroniza el valor inicial cuando DataStore entrega los datos guardados
-    LaunchedEffect(intentosGuardados) {
-        intentosPermitidos = intentosGuardados
-    }
+    val editable = estado.cargado &&
+            !estado.cargando &&
+            !estado.guardando
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Configuración de Prueba") },
+                title = {
+                    Text("Configuración de Prueba")
+                },
                 navigationIcon = {
                     if (navController != null) {
-                        IconButton(onClick = { navController.popBackStack() }) {
+                        IconButton(
+                            onClick = {
+                                navController.popBackStack()
+                            }
+                        ) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                imageVector =
+                                    Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Volver al panel"
                             )
                         }
@@ -54,104 +55,209 @@ fun ConfiguracionExamenScreen(navController: NavController? = null) {
             )
         }
     ) { innerPadding ->
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(20.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement =
+                Arrangement.spacedBy(16.dp)
         ) {
-            Text("Parámetros de Evaluación", style = MaterialTheme.typography.titleLarge)
 
             Text(
-                text = "Número de Intentos Permitidos: $intentosPermitidos",
+                text = "Parámetros de Evaluación",
+                style = MaterialTheme.typography.titleLarge
+            )
+
+            OutlinedButton(
+                onClick = onActualizar,
+                enabled = !estado.cargando &&
+                        !estado.guardando,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Actualizar desde servidor")
+            }
+
+            if (estado.cargando || estado.guardando) {
+                LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            Text(
+                text = "Número de Intentos Permitidos: " +
+                        datos.intentosPermitidos,
                 style = MaterialTheme.typography.titleMedium
             )
 
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(onClick = {
-                    if (intentosPermitidos > 1) {
-                        intentosPermitidos--
-                        mensajeGuardado = false
-                    }
-                }) {
-                    Text("-", style = MaterialTheme.typography.titleMedium)
-                }
-
-                Button(onClick = {
-                    if (intentosPermitidos < 5) {
-                        intentosPermitidos++
-                        mensajeGuardado = false
-                    }
-                }) {
-                    Text("+", style = MaterialTheme.typography.titleMedium)
-                }
-            }
-
-            OutlinedTextField(
-                value = fechaInicio,
-                onValueChange = { fechaInicio = it },
-                label = { Text("Fecha de Disponibilidad Inicial") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            OutlinedTextField(
-                value = fechaFin,
-                onValueChange = { fechaFin = it },
-                label = { Text("Fecha de Cierre") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Text("Control de Versiones de la Prueba", style = MaterialTheme.typography.titleMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("v1.0", "v1.2", "v2.0").forEach { version ->
-                    FilterChip(
-                        selected = versionSeleccionada == version,
-                        onClick = { versionSeleccionada = version },
-                        label = { Text(version) }
-                    )
-                }
-            }
-
-            // BOTÓN QUE AHORA SÍ GUARDA DE VERDAD EN EL ALMACENAMIENTO DEL DISPOSITIVO
-            Button(
-                onClick = {
-                    scope.launch {
-                        // Persiste los nuevos intentos en ConfiguracionStore
-                        configuracionStore.guardarIntentoYNota(intentosPermitidos, 0)
-                        mensajeGuardado = true
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp)
+            Row(
+                horizontalArrangement =
+                    Arrangement.spacedBy(12.dp)
             ) {
-                Text("Guardar Parámetros de Examen")
+
+                Button(
+                    onClick = {
+                        onCambiar(
+                            datos.copy(
+                                intentosPermitidos =
+                                    datos.intentosPermitidos - 1
+                            )
+                        )
+                    },
+                    enabled = editable &&
+                            datos.intentosPermitidos > 1
+                ) {
+                    Text("-")
+                }
+
+                Button(
+                    onClick = {
+                        onCambiar(
+                            datos.copy(
+                                intentosPermitidos =
+                                    datos.intentosPermitidos + 1
+                            )
+                        )
+                    },
+                    enabled = editable &&
+                            datos.intentosPermitidos < 5
+                ) {
+                    Text("+")
+                }
             }
 
-            if (mensajeGuardado) {
+            OutlinedTextField(
+                value = datos.fechaInicio.orEmpty(),
+                onValueChange = {
+                    onCambiar(datos.copy(fechaInicio = it))
+                },
+                label = {
+                    Text("Fecha de inicio")
+                },
+                placeholder = {
+                    Text("DD/MM/AAAA")
+                },
+                enabled = editable,
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
+                value = datos.fechaFin.orEmpty(),
+                onValueChange = {
+                    onCambiar(datos.copy(fechaFin = it))
+                },
+                label = {
+                    Text("Fecha de cierre")
+                },
+                placeholder = {
+                    Text("DD/MM/AAAA")
+                },
+                enabled = editable,
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Text(
+                text = "Control de Versiones de la Prueba",
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            Row(
+                horizontalArrangement =
+                    Arrangement.spacedBy(8.dp)
+            ) {
+                listOf("v1.0", "v1.2", "v2.0")
+                    .forEach { version ->
+
+                        FilterChip(
+                            selected =
+                                datos.version == version,
+                            onClick = {
+                                onCambiar(
+                                    datos.copy(
+                                        version = version
+                                    )
+                                )
+                            },
+                            enabled = editable,
+                            label = {
+                                Text(version)
+                            }
+                        )
+                    }
+            }
+
+            Text(
+                "Versión actual: ${datos.version.orEmpty()}"
+            )
+
+            Button(
+                onClick = onGuardar,
+                enabled = editable,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    if (estado.guardando)
+                        "Guardando..."
+                    else
+                        "Guardar Parámetros de Examen"
+                )
+            }
+
+            estado.error?.let {
+
+                Text(
+                    text = it,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+
+            estado.mensaje?.let {
+
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                    colors = CardDefaults.cardColors(
+                        containerColor =
+                            MaterialTheme.colorScheme.primaryContainer
+                    ),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "✓ Parámetros guardados: $intentosPermitidos intentos registrados para $versionSeleccionada.",
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(12.dp)
+                        text = it,
+                        modifier = Modifier.padding(12.dp),
+                        color =
+                            MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
+            }
+
+            datos.id?.let {
+                Text(
+                    text = "Configuración remota #$it",
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
         }
     }
 }
 
-@Preview(name = "Vista Celular - Configuración Examen", showBackground = true, widthDp = 360, heightDp = 800)
+@Preview(
+    name = "Configuración Examen",
+    showBackground = true
+)
 @Composable
 fun ConfiguracionExamenScreenPreview() {
     MaterialTheme {
-        val navController = rememberNavController()
-        ConfiguracionExamenScreen(navController = navController)
+        ConfiguracionExamenScreen(
+            estado = ConfiguracionExamenUiState(
+                cargando = false,
+                cargado = true
+            ),
+            onCambiar = {},
+            onGuardar = {},
+            onActualizar = {}
+        )
     }
 }

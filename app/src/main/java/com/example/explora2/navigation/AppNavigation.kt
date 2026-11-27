@@ -13,6 +13,7 @@ import androidx.navigation.navArgument
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import com.example.explora2.viewmodel.ConfiguracionExamenViewModel
 
 
 // Inicio
@@ -103,6 +104,8 @@ fun AppNavigation() {
     val usuarioViewModel: UsuarioViewModel = viewModel()
     val personalizacionViewModel: PersonalizacionViewModel = viewModel()
     val gestionViewModel: GestionViewModel = viewModel()
+    val configuracionExamenViewModel:
+            ConfiguracionExamenViewModel = viewModel()
 
     NavHost(
         navController = navController,
@@ -327,11 +330,28 @@ fun AppNavigation() {
 
 
 
+
         composable(Screen.ConfiguracionExamen.route) {
+
+            val configuracion by
+            configuracionExamenViewModel.estado.collectAsState()
+
+            androidx.compose.runtime.LaunchedEffect(Unit) {
+                configuracionExamenViewModel.cargar()
+            }
+
             ConfiguracionExamenScreen(
-                navController = navController
+                navController = navController,
+                estado = configuracion,
+                onCambiar =
+                    configuracionExamenViewModel::cambiarBorrador,
+                onGuardar =
+                    configuracionExamenViewModel::guardar,
+                onActualizar =
+                    configuracionExamenViewModel::cargar
             )
         }
+
 
 
         composable(Screen.RevisionEntregas.route) {
