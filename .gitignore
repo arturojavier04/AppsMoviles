@@ -14,3 +14,13 @@
 .cxx
 local.properties
 Administrador/ 
+
+# Firma digital
+*.jks
+*.keystore
+keystore.properties
+
+# Archivos locales
+AGENTS.md
+app/build/
+app/release/

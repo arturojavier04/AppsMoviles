@@ -1,8 +1,20 @@
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+}
+
+val keystorePropertiesFile =
+    rootProject.file("keystore.properties")
+
+val keystoreProperties = Properties()
+
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.inputStream().use {
+        keystoreProperties.load(it)
+    }
 }
 
 android {
@@ -19,21 +31,41 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
-
-    buildTypes {
-        release {
-            isMinifyEnabled = false
-
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+    signingConfigs {
+        if (keystorePropertiesFile.exists()) {
+            create("release") {
+                storeFile = rootProject.file(
+                    keystoreProperties.getProperty("storeFile")
+                )
+                storePassword =
+                    keystoreProperties.getProperty("storePassword")
+                keyAlias =
+                    keystoreProperties.getProperty("keyAlias")
+                keyPassword =
+                    keystoreProperties.getProperty("keyPassword")
+            }
         }
     }
 
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+    buildTypes {
+        debug {
+            enableUnitTestCoverage = true
+        }
+
+        release {
+            isMinifyEnabled = false
+
+            if (keystorePropertiesFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+
+            proguardFiles(
+                getDefaultProguardFile(
+                    "proguard-android-optimize.txt"
+                ),
+                "proguard-rules.pro"
+            )
+        }
     }
 
     kotlinOptions {
