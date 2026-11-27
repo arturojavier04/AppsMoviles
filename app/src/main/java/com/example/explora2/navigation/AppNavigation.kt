@@ -183,15 +183,30 @@ fun AppNavigation() {
 
         // DOCENTE
 
+
         composable(Screen.PanelDocente.route) {
+
             val estado by gestionViewModel.estado.collectAsState()
+
+            val consultaDocente by
+            gestionViewModel.consultaDocente.collectAsState()
+
+            androidx.compose.runtime.LaunchedEffect(Unit) {
+                gestionViewModel.cargarPlanificacionesDocente()
+            }
 
             PanelDocenteScreen(
                 navController = navController,
                 gestionUiState = estado,
-                onAsignarClick = gestionViewModel::asignarAlAlumno
+                onAsignarClick = gestionViewModel::asignarAlAlumno,
+                consultaDocente = consultaDocente,
+                onActualizarPlanificaciones =
+                    gestionViewModel::cargarPlanificacionesDocente,
+                onAsignarRemota =
+                    gestionViewModel::asignarPlanificacion
             )
         }
+
 
         composable(Screen.ConfiguracionExamen.route) {
             ConfiguracionExamenScreen(

@@ -254,4 +254,204 @@ class GestionRemotaTest : FunSpec({
         }
     }
 
+    test("docente recupera solo planificaciones autorizadas") {
+
+        val autorizada = plan.copy(
+            validado = true,
+            autorizado = true
+        )
+
+        val pendiente = autorizada.copy(
+            id = 48,
+            autorizado = false
+        )
+
+        coEvery { api.listar() } returns
+                listOf(autorizada, pendiente)
+
+        vm.cargarPlanificacionesDocente()
+
+        assertEquals(
+            listOf(autorizada),
+            vm.consultaDocente.value.planificaciones
+        )
+
+        assertFalse(vm.consultaDocente.value.cargando)
+        assertNull(vm.consultaDocente.value.error)
+    }
+
+    test("docente asigna una planificación autorizada") {
+
+        val autorizada = plan.copy(
+            validado = true,
+            autorizado = true,
+            asignadoAlumno = false
+        )
+
+        val asignada = autorizada.copy(
+            asignadoAlumno = true
+        )
+
+        coEvery { api.listar() } returns listOf(autorizada)
+
+        coEvery { api.obtenerPorId(47) } returns autorizada
+
+        coEvery { api.actualizar(47, asignada) } returns
+                Response.success(asignada)
+
+        vm.cargarPlanificacionesDocente()
+        vm.asignarPlanificacion(47)
+
+        assertEquals(
+            asignada,
+            vm.consultaDocente.value.planificaciones.first()
+        )
+
+        assertNull(vm.consultaDocente.value.asignandoId)
+        assertNull(vm.consultaDocente.value.error)
+
+        coVerify(exactly = 1) {
+            api.actualizar(47, asignada)
+        }
+    }
+
+    test("docente no puede asignar una planificación sin autorización") {
+
+        val pendiente = plan.copy(
+            validado = true,
+            autorizado = false
+        )
+
+        coEvery { api.listar() } returns listOf(pendiente)
+
+        coEvery { api.obtenerPorId(47) } returns pendiente
+
+        vm.cargarPlanificacionesDocente()
+        vm.asignarPlanificacion(47)
+
+        assertNotNull(vm.consultaDocente.value.error)
+        assertNull(vm.consultaDocente.value.asignandoId)
+
+        coVerify(exactly = 0) {
+            api.actualizar(any(), any())
+        }
+    }
+
+    test("un error de conexión no confirma la asignación") {
+
+        val autorizada = plan.copy(
+            validado = true,
+            autorizado = true,
+            asignadoAlumno = false
+        )
+
+        coEvery { api.listar() } returns listOf(autorizada)
+
+        coEvery { api.obtenerPorId(47) } returns autorizada
+
+        coEvery {
+            api.actualizar(any(), any())
+        } throws ConnectException()
+
+        vm.cargarPlanificacionesDocente()
+        vm.asignarPlanificacion(47)
+
+        assertFalse(
+            vm.consultaDocente.value
+                .planificaciones.first().asignadoAlumno
+        )
+
+        assertNotNull(vm.consultaDocente.value.error)
+        assertNull(vm.consultaDocente.value.asignandoId)
+    }
+
+    test("dos pulsaciones simultáneas solo realizan una asignación") {
+
+        val autorizada = plan.copy(
+            validado = true,
+            autorizado = true,
+            asignadoAlumno = false
+        )
+
+        val asignada = autorizada.copy(
+            asignadoAlumno = true
+        )
+
+        val respuestaPendiente =
+            CompletableDeferred<Response<PlanificacionDto>>()
+
+        coEvery { api.listar() } returns listOf(autorizada)
+
+        coEvery { api.obtenerPorId(47) } returns autorizada
+
+        coEvery {
+            api.actualizar(47, asignada)
+        } coAnswers {
+            respuestaPendiente.await()
+        }
+
+        vm.cargarPlanificacionesDocente()
+
+        vm.asignarPlanificacion(47)
+        vm.asignarPlanificacion(47)
+
+        assertEquals(
+            47L,
+            vm.consultaDocente.value.asignandoId
+        )
+
+        respuestaPendiente.complete(
+            Response.success(asignada)
+        )
+
+        coVerify(exactly = 1) {
+            api.actualizar(47, asignada)
+        }
+
+        assertTrue(
+            vm.consultaDocente.value
+                .planificaciones.first().asignadoAlumno
+        )
+
+        assertNull(vm.consultaDocente.value.asignandoId)
+    }
+
+    test("asignar una planificación no modifica las demás") {
+
+        val primera = plan.copy(
+            validado = true,
+            autorizado = true,
+            asignadoAlumno = false
+        )
+
+        val segunda = primera.copy(
+            id = 48,
+            titulo = "Actividad de Matemática"
+        )
+
+        val asignada = primera.copy(
+            asignadoAlumno = true
+        )
+
+        coEvery { api.listar() } returns
+                listOf(primera, segunda)
+
+        coEvery { api.obtenerPorId(47) } returns primera
+
+        coEvery { api.actualizar(47, asignada) } returns
+                Response.success(asignada)
+
+        vm.cargarPlanificacionesDocente()
+        vm.asignarPlanificacion(47)
+
+        assertEquals(
+            listOf(asignada, segunda),
+            vm.consultaDocente.value.planificaciones
+        )
+
+        coVerify(exactly = 0) {
+            api.actualizar(48, any())
+        }
+    }
+
 })

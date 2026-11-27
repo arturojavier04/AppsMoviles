@@ -16,6 +16,7 @@ import com.example.explora2.model.GestionUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
+import com.example.explora2.model.ConsultaDocenteUiState
 
 class GestionViewModel(
     private val repositorio: PlanificacionRepository = PlanificacionRepository()
@@ -23,6 +24,16 @@ class GestionViewModel(
     private val _consulta = MutableStateFlow(ConsultaUtpUiState())
     val consulta: StateFlow<ConsultaUtpUiState> = _consulta
     private var consultaActiva: Job? = null
+
+
+    private val _consultaDocente =
+        MutableStateFlow(ConsultaDocenteUiState())
+
+    val consultaDocente: StateFlow<ConsultaDocenteUiState> =
+        _consultaDocente
+
+    private var consultaDocenteActiva: Job? = null
+
 
 
     private val _estado = MutableStateFlow(GestionUiState())
@@ -271,6 +282,125 @@ class GestionViewModel(
     }
 
     // Asignacion del contenido al estudiante (garantiza que ambos queden en true)
+
+    fun cargarPlanificacionesDocente() {
+
+        if (_consultaDocente.value.asignandoId != null) return
+
+        consultaDocenteActiva?.cancel()
+
+        _consultaDocente.update {
+            it.copy(
+                cargando = true,
+                error = null
+            )
+        }
+
+        consultaDocenteActiva = viewModelScope.launch {
+            try {
+                val planificaciones =
+                    repositorio.listarAutorizadas()
+
+                _consultaDocente.update {
+                    it.copy(
+                        cargando = false,
+                        planificaciones = planificaciones,
+                        error = null
+                    )
+                }
+
+            } catch (e: CancellationException) {
+                throw e
+
+            } catch (e: Exception) {
+                _consultaDocente.update {
+                    it.copy(
+                        cargando = false,
+                        error = "No se pudieron cargar las planificaciones."
+                    )
+                }
+            }
+        }
+    }
+
+    fun asignarPlanificacion(id: Long) {
+
+        if (_consultaDocente.value.asignandoId != null ||
+            _consultaDocente.value.cargando
+        ) return
+
+        _consultaDocente.update {
+            it.copy(
+                asignandoId = id,
+                error = null
+            )
+        }
+
+        viewModelScope.launch {
+            try {
+                val actual = repositorio.obtenerPorId(id)
+
+                if (!actual.validado ||
+                    !actual.enviadoUtp ||
+                    !actual.autorizado
+                ) {
+                    _consultaDocente.update {
+                        it.copy(
+                            error = "La planificación debe estar autorizada por UTP."
+                        )
+                    }
+
+                    return@launch
+                }
+
+                val actualizado = if (actual.asignadoAlumno) {
+                    actual
+                } else {
+                    repositorio.actualizar(
+                        id,
+                        actual.copy(asignadoAlumno = true)
+                    )
+                }
+
+                if (!actualizado.asignadoAlumno) {
+                    throw IllegalStateException(
+                        "El servidor no confirmó la asignación"
+                    )
+                }
+
+                _consultaDocente.update { estado ->
+                    estado.copy(
+                        planificaciones = estado.planificaciones.map {
+                            if (it.id == id) actualizado else it
+                        },
+                        error = null
+                    )
+                }
+
+            } catch (e: CancellationException) {
+                throw e
+
+            } catch (e: Exception) {
+                val mensaje =
+                    if (e is HttpException && e.code() == 404) {
+                        "La planificación ya no existe."
+                    } else {
+                        "No se pudo confirmar la asignación. Actualiza la lista."
+                    }
+
+                _consultaDocente.update {
+                    it.copy(error = mensaje)
+                }
+
+            } finally {
+                _consultaDocente.update {
+                    it.copy(asignandoId = null)
+                }
+            }
+        }
+    }
+
+
     fun asignarAlAlumno() {
         _estado.update {
             it.copy(

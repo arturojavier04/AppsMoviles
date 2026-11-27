@@ -14,6 +14,7 @@ import com.example.explora2.model.GestionUiState
 import com.example.explora2.navigation.Screen
 import com.example.explora2.repository.ConfiguracionStore
 import kotlinx.coroutines.launch
+import com.example.explora2.model.ConsultaDocenteUiState
 
 data class UnidadDocente(
     val titulo: String,
@@ -27,8 +28,13 @@ data class UnidadDocente(
 fun PanelDocenteScreen(
     navController: NavController? = null,
     gestionUiState: GestionUiState = GestionUiState(),
-    onAsignarClick: () -> Unit = {}
+    onAsignarClick: () -> Unit = {},
+    consultaDocente: ConsultaDocenteUiState =
+        ConsultaDocenteUiState(cargando = false),
+    onActualizarPlanificaciones: () -> Unit = {},
+    onAsignarRemota: (Long) -> Unit = {}
 ) {
+
     val contexto = LocalContext.current
     val scope = rememberCoroutineScope()
     val configuracionStore = remember { ConfiguracionStore(contexto) }
@@ -106,16 +112,110 @@ fun PanelDocenteScreen(
                 }
             }
 
+            item {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Planificaciones autorizadas por UTP",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    OutlinedButton(
+                        onClick = onActualizarPlanificaciones,
+                        enabled = !consultaDocente.cargando &&
+                                consultaDocente.asignandoId == null,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Actualizar planificaciones")
+                    }
+
+                    if (consultaDocente.cargando ||
+                        consultaDocente.asignandoId != null
+                    ) {
+                        LinearProgressIndicator(
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
+                    consultaDocente.error?.let {
+                        Text(
+                            text = it,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+
+                    if (!consultaDocente.cargando &&
+                        consultaDocente.error == null &&
+                        consultaDocente.planificaciones.isEmpty()
+                    ) {
+                        Text("No hay planificaciones autorizadas.")
+                    }
+                }
+            }
+
+            items(
+                consultaDocente.planificaciones,
+                key = { "docente-remota-${it.id}" }
+            ) { plan ->
+
+                Card(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "#${plan.id} · ${plan.titulo.orEmpty()}",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+
+                        Text("Asignatura: ${plan.asignatura.orEmpty()}")
+                        Text("Unidad: ${plan.unidad.orEmpty()}")
+                        Text("Objetivo: ${plan.objetivo.orEmpty()}")
+
+                        if (plan.asignadoAlumno) {
+                            Text(
+                                text = "✓ Asignada al alumno",
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        } else {
+                            Button(
+                                onClick = {
+                                    plan.id?.let(onAsignarRemota)
+                                },
+                                enabled = !consultaDocente.cargando &&
+                                        consultaDocente.asignandoId == null &&
+                                        plan.id != null,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    if (consultaDocente.asignandoId == plan.id)
+                                        "Asignando..."
+                                    else
+                                        "Asignar al alumno"
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+
             // Muestra la tarjeta si UTP ya autorizó el contenido
             item {
-                if (gestionUiState.autorizado) {
+                if (gestionUiState.autorizado &&
+                    gestionUiState.idRemoto == null
+                ) {
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(
                             modifier = Modifier.padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Text(
-                                text = "Contenido autorizado por UTP",
+                                text = "Contenido autorizado · práctica local",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.primary
                             )

@@ -34,6 +34,15 @@ class PlanificacionRepository(
             it.enviadoUtp && it.id != null
         }
 
+    suspend fun listarAutorizadas(): List<PlanificacionDto> =
+        api.listar().filter {
+            it.id != null &&
+                    it.validado &&
+                    it.enviadoUtp &&
+                    it.autorizado
+        }
+
+
     suspend fun obtenerPorId(id: Long): PlanificacionDto =
         api.obtenerPorId(id)
 
