@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import com.example.explora2.model.ConsultaDocenteUiState
 import com.example.explora2.model.ConsultaAlumnoUiState
+import com.example.explora2.model.RevisionEntregasUiState
 
 
 class GestionViewModel(
@@ -45,6 +46,17 @@ class GestionViewModel(
 
     private var consultaAlumnoActiva: Job? = null
     private var detalleAlumnoActivo: Job? = null
+
+
+
+    private val _revisionEntregas =
+        MutableStateFlow(RevisionEntregasUiState())
+
+    val revisionEntregas: StateFlow<RevisionEntregasUiState> =
+        _revisionEntregas
+
+    private var revisionEntregasActiva: Job? = null
+
 
 
 
@@ -675,6 +687,46 @@ class GestionViewModel(
 
 
     // Reinicia el formulario para redactar una nueva planificacion
+
+
+    fun cargarEntregasDocente() {
+
+        revisionEntregasActiva?.cancel()
+
+        _revisionEntregas.update {
+            it.copy(
+                cargando = true,
+                error = null
+            )
+        }
+
+        revisionEntregasActiva = viewModelScope.launch {
+            try {
+                val entregas = repositorio.listarEntregadas()
+
+                _revisionEntregas.update {
+                    it.copy(
+                        cargando = false,
+                        entregas = entregas,
+                        error = null
+                    )
+                }
+
+            } catch (e: CancellationException) {
+                throw e
+
+            } catch (e: Exception) {
+                _revisionEntregas.update {
+                    it.copy(
+                        cargando = false,
+                        entregas = emptyList(),
+                        error = "No se pudieron cargar las entregas."
+                    )
+                }
+            }
+        }
+    }
+
     fun nuevaPlanificacion() {
         _estado.update {
             GestionUiState()

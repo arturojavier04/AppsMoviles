@@ -49,6 +49,13 @@ class PlanificacionRepository(
         }
 
 
+    suspend fun listarEntregadas(): List<PlanificacionDto> =
+        listarAsignadas().filter {
+            it.respuestaEntregada
+        }
+
+
+
 
     suspend fun obtenerPorId(id: Long): PlanificacionDto =
         api.obtenerPorId(id)

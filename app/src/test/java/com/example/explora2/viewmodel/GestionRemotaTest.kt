@@ -721,6 +721,139 @@ class GestionRemotaTest : FunSpec({
     }
 
 
+    test("docente recupera solo actividades entregadas") {
+
+        val entregada = plan.copy(
+            validado = true,
+            autorizado = true,
+            asignadoAlumno = true,
+            respuestaEntregada = true,
+            respuestaAlumno = "Mi respuesta"
+        )
+
+        val pendiente = entregada.copy(
+            id = 48,
+            respuestaEntregada = false,
+            respuestaAlumno = ""
+        )
+
+        coEvery { api.listar() } returns
+                listOf(entregada, pendiente)
+
+        vm.cargarEntregasDocente()
+
+        assertEquals(
+            listOf(entregada),
+            vm.revisionEntregas.value.entregas
+        )
+
+        assertFalse(vm.revisionEntregas.value.cargando)
+        assertNull(vm.revisionEntregas.value.error)
+    }
+
+    test("docente recupera varias entregas con sus respuestas") {
+
+        val primera = plan.copy(
+            validado = true,
+            autorizado = true,
+            asignadoAlumno = true,
+            respuestaEntregada = true,
+            respuestaAlumno = "El leon y el raton"
+        )
+
+        val segunda = primera.copy(
+            id = 48,
+            titulo = "Actividad de Matemática",
+            respuestaAlumno = "El resultado es 25"
+        )
+
+        coEvery { api.listar() } returns
+                listOf(primera, segunda)
+
+        vm.cargarEntregasDocente()
+
+        assertEquals(
+            listOf(primera, segunda),
+            vm.revisionEntregas.value.entregas
+        )
+
+        assertEquals(
+            "El leon y el raton",
+            vm.revisionEntregas.value.entregas[0].respuestaAlumno
+        )
+
+        assertEquals(
+            "El resultado es 25",
+            vm.revisionEntregas.value.entregas[1].respuestaAlumno
+        )
+    }
+
+    test("docente puede consultar una lista sin entregas") {
+
+        coEvery { api.listar() } returns emptyList()
+
+        vm.cargarEntregasDocente()
+
+        assertTrue(
+            vm.revisionEntregas.value.entregas.isEmpty()
+        )
+
+        assertFalse(vm.revisionEntregas.value.cargando)
+        assertNull(vm.revisionEntregas.value.error)
+    }
+
+    test("error de conexion al recuperar entregas") {
+
+        coEvery {
+            api.listar()
+        } throws ConnectException()
+
+        vm.cargarEntregasDocente()
+
+        assertTrue(
+            vm.revisionEntregas.value.entregas.isEmpty()
+        )
+
+        assertNotNull(vm.revisionEntregas.value.error)
+        assertFalse(vm.revisionEntregas.value.cargando)
+    }
+
+    test("docente recupera entregas despues de reintentar") {
+
+        val entregada = plan.copy(
+            validado = true,
+            autorizado = true,
+            asignadoAlumno = true,
+            respuestaEntregada = true,
+            respuestaAlumno = "Respuesta guardada"
+        )
+
+        coEvery {
+            api.listar()
+        } throws ConnectException()
+
+        vm.cargarEntregasDocente()
+
+        assertNotNull(vm.revisionEntregas.value.error)
+
+        coEvery {
+            api.listar()
+        } returns listOf(entregada)
+
+        vm.cargarEntregasDocente()
+
+        assertNull(vm.revisionEntregas.value.error)
+
+        assertEquals(
+            listOf(entregada),
+            vm.revisionEntregas.value.entregas
+        )
+
+        assertFalse(vm.revisionEntregas.value.cargando)
+    }
+
+
+
 
 
 

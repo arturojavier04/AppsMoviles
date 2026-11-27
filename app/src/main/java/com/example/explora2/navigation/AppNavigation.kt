@@ -327,14 +327,28 @@ fun AppNavigation() {
             )
         }
 
+
         composable(Screen.RevisionEntregas.route) {
-            val estado by gestionViewModel.estado.collectAsState()
+
+            val estado by
+            gestionViewModel.estado.collectAsState()
+
+            val revisionEntregas by
+            gestionViewModel.revisionEntregas.collectAsState()
+
+            androidx.compose.runtime.LaunchedEffect(Unit) {
+                gestionViewModel.cargarEntregasDocente()
+            }
 
             RevisionEntregasScreen(
                 navController = navController,
-                gestionUiState = estado
+                gestionUiState = estado,
+                revisionEntregas = revisionEntregas,
+                onActualizarEntregas =
+                    gestionViewModel::cargarEntregasDocente
             )
         }
+
 
         composable(Screen.GestionContenido.route) {
             val estado by gestionViewModel.estado.collectAsState()
