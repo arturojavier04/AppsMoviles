@@ -29,6 +29,7 @@ private val estadoSolicitudesGlobales = mutableStateListOf(
     SolicitudUnidad(2, "Prof. Roberto Vidal", "Unidad 1 - Vocabulario", "Guías visuales de palabras", true)
 )
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AutorizacionUtpScreen(
@@ -37,7 +38,8 @@ fun AutorizacionUtpScreen(
     consulta: ConsultaUtpUiState = ConsultaUtpUiState(cargando = false),
     onActualizar: () -> Unit = {},
     onDetalle: (Long) -> Unit = {},
-    onAprobarClick: () -> Unit = {}
+    onAprobarClick: () -> Unit = {},
+    onAutorizarRemota: (Long) -> Unit = {}
 ) {
     Scaffold(
         topBar = {
@@ -65,8 +67,10 @@ fun AutorizacionUtpScreen(
         ) {
             item {
                 Text("Planificaciones enviadas a UTP", style = MaterialTheme.typography.titleMedium)
-                OutlinedButton(onClick = onActualizar, enabled = !consulta.cargando) { Text("Actualizar lista") }
-                if (consulta.cargando) LinearProgressIndicator()
+                OutlinedButton(onClick = onActualizar, enabled = !consulta.cargando && !consulta.autorizando) { Text("Actualizar lista") }
+                if (consulta.cargando || consulta.autorizando) {
+                    LinearProgressIndicator()
+                }
                 consulta.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 if (!consulta.cargando && consulta.error == null && consulta.solicitudes.isEmpty()) {
                     Text("Aún no hay planificaciones enviadas.")
@@ -83,16 +87,49 @@ fun AutorizacionUtpScreen(
                             Text("Recurso: ${plan.tipoRecurso.orEmpty()}")
                             Text("Instrucción: ${plan.descripcion.orEmpty()}")
                             Text(if (plan.autorizado) "Autorizada en el servidor" else "Pendiente en el servidor")
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            if (plan.autorizado) {
+                                AssistChip(
+                                    onClick = {},
+                                    label = {
+                                        Text("Planificación autorizada ✓")
+                                    }
+                                )
+                            } else {
+                                Button(
+                                    onClick = {
+                                        plan.id?.let(onAutorizarRemota)
+                                    },
+                                    enabled = !consulta.autorizando &&
+                                            !consulta.cargando &&
+                                            plan.validado &&
+                                            plan.enviadoUtp &&
+                                            plan.id != null,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        if (consulta.autorizando)
+                                            "Autorizando..."
+                                        else
+                                            "Autorizar planificación"
+                                    )
+                                }
+                            }
+
                         }
                     }
                 }
             }
             items(consulta.solicitudes, key = { "remota-${it.id}" }) { plan ->
-                OutlinedButton(onClick = { plan.id?.let(onDetalle) }, enabled = !consulta.cargando) {
+                OutlinedButton(onClick = { plan.id?.let(onDetalle) }, enabled = !consulta.cargando && !consulta.autorizando) {
                     Text("#${plan.id} · ${plan.titulo.orEmpty()} · ${plan.asignatura.orEmpty()} · ${plan.unidad.orEmpty()}")
                 }
             }
-            if (gestionUiState.enviadoUtp) {
+            if (gestionUiState.enviadoUtp &&
+                gestionUiState.idRemoto == null
+            ) {
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),

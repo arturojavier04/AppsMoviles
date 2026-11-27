@@ -10,6 +10,11 @@ import kotlinx.coroutines.flow.map
 
 private val Context.almacenPreferencias by preferencesDataStore(name = "explora2_config_prefs")
 
+
+data class ProgresoEvaluacion(
+    val intentosUsados: Int = 0,
+    val ultimoPuntaje: Int = 0
+)
 class ConfiguracionStore(private val context: Context) {
 
     companion object {
@@ -19,6 +24,9 @@ class ConfiguracionStore(private val context: Context) {
         // Nuevas claves para el Caso MPAZ PRO (Intentos y Notas)
         private val CLAVE_INTENTOS_RESTANTES = intPreferencesKey("intentos_restantes")
         private val CLAVE_ULTIMO_PUNTAJE = intPreferencesKey("ultimo_puntaje")
+
+        private val CLAVE_INTENTOS_USADOS =
+            intPreferencesKey("intentos_usados")
     }
 
     // --- MÉTODOS GUÍA 12 (Sesión / Preferencias) ---
@@ -50,10 +58,66 @@ class ConfiguracionStore(private val context: Context) {
         }
     }
 
+
+    val progresoEvaluacionFlow: Flow<ProgresoEvaluacion> =
+        context.almacenPreferencias.data.map { registro ->
+
+            val restantesAnteriores =
+                registro[CLAVE_INTENTOS_RESTANTES] ?: 2
+
+            val usados = registro[CLAVE_INTENTOS_USADOS]
+                ?: (2 - restantesAnteriores).coerceIn(0, 2)
+
+            ProgresoEvaluacion(
+                intentosUsados = usados,
+                ultimoPuntaje =
+                    registro[CLAVE_ULTIMO_PUNTAJE] ?: 0
+            )
+        }
+
+    suspend fun registrarIntento(
+        maximoPermitido: Int,
+        puntaje: Int
+    ): Boolean {
+
+        require(maximoPermitido in 1..5)
+
+        var registrado = false
+
+        context.almacenPreferencias.edit { registro ->
+
+            val restantesAnteriores =
+                registro[CLAVE_INTENTOS_RESTANTES] ?: 2
+
+            val usados = registro[CLAVE_INTENTOS_USADOS]
+                ?: (2 - restantesAnteriores).coerceIn(0, 2)
+
+            if (usados < maximoPermitido) {
+
+                val nuevosUsados = usados + 1
+
+                registro[CLAVE_INTENTOS_USADOS] =
+                    nuevosUsados
+
+                registro[CLAVE_INTENTOS_RESTANTES] =
+                    maximoPermitido - nuevosUsados
+
+                registro[CLAVE_ULTIMO_PUNTAJE] =
+                    puntaje
+
+                registrado = true
+            }
+        }
+
+        return registrado
+    }
+
+
     suspend fun reiniciarIntentosPrueba() {
         context.almacenPreferencias.edit { registro ->
             registro[CLAVE_INTENTOS_RESTANTES] = 2
             registro[CLAVE_ULTIMO_PUNTAJE] = 0
+            registro[CLAVE_INTENTOS_USADOS] = 0
         }
     }
 }

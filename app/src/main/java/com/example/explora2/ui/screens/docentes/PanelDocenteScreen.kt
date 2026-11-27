@@ -6,14 +6,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.explora2.model.GestionUiState
 import com.example.explora2.navigation.Screen
-import com.example.explora2.repository.ConfiguracionStore
-import kotlinx.coroutines.launch
+import com.example.explora2.model.ConsultaDocenteUiState
+
 
 data class UnidadDocente(
     val titulo: String,
@@ -22,19 +21,24 @@ data class UnidadDocente(
     val rendimientoPromedio: String
 )
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PanelDocenteScreen(
     navController: NavController? = null,
     gestionUiState: GestionUiState = GestionUiState(),
-    onAsignarClick: () -> Unit = {}
+    onAsignarClick: () -> Unit = {},
+    consultaDocente: ConsultaDocenteUiState =
+        ConsultaDocenteUiState(cargando = false),
+    onActualizarPlanificaciones: () -> Unit = {},
+    onAsignarRemota: (Long) -> Unit = {},
+    onEliminarRemota: (Long) -> Unit
 ) {
-    val contexto = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val configuracionStore = remember { ConfiguracionStore(contexto) }
+
+
+
 
     // Conectado al almacenamiento local persistente (DataStore)
-    val intentosGlobales by configuracionStore.intentosRestantesFlow.collectAsState(initial = 2)
 
     val unidades = listOf(
         UnidadDocente(
@@ -50,6 +54,64 @@ fun PanelDocenteScreen(
             rendimientoPromedio = "72% En Proceso"
         )
     )
+
+
+    var idAEliminar by remember {
+        mutableStateOf<Long?>(null)
+    }
+
+    val ocupado = consultaDocente.cargando ||
+            consultaDocente.asignandoId != null ||
+            consultaDocente.eliminandoId != null
+
+    idAEliminar?.let { id ->
+
+        val plan = consultaDocente.planificaciones
+            .firstOrNull { it.id == id }
+
+        AlertDialog(
+            onDismissRequest = {
+                idAEliminar = null
+            },
+            title = {
+                Text("Eliminar planificación")
+            },
+            text = {
+                Text(
+                    "¿Estás seguro de eliminar la planificación " +
+                            "#$id: ${plan?.titulo.orEmpty()}? " +
+                            "Esta acción no se puede deshacer."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = !ocupado &&
+                            plan != null &&
+                            !plan.asignadoAlumno &&
+                            !plan.respuestaEntregada,
+                    onClick = {
+                        idAEliminar = null
+                        onEliminarRemota(id)
+                    }
+                ) {
+                    Text(
+                        text = "Eliminar",
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        idAEliminar = null
+                    }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
 
     Scaffold(
         topBar = {
@@ -106,16 +168,142 @@ fun PanelDocenteScreen(
                 }
             }
 
+            item {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Planificaciones autorizadas por UTP",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+
+                    OutlinedButton(
+                        onClick = onActualizarPlanificaciones,
+                        enabled = !ocupado,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Actualizar planificaciones")
+                    }
+
+
+
+                    if (ocupado) {
+                        LinearProgressIndicator(
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
+
+                    consultaDocente.error?.let {
+                        Text(
+                            text = it,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+
+                    if (!consultaDocente.cargando &&
+                        consultaDocente.error == null &&
+                        consultaDocente.planificaciones.isEmpty()
+                    ) {
+                        Text("No hay planificaciones autorizadas.")
+                    }
+                }
+            }
+
+            items(
+                consultaDocente.planificaciones,
+                key = { "docente-remota-${it.id}" }
+            ) { plan ->
+
+                Card(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "#${plan.id} · ${plan.titulo.orEmpty()}",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+
+                        Text("Asignatura: ${plan.asignatura.orEmpty()}")
+                        Text("Unidad: ${plan.unidad.orEmpty()}")
+                        Text("Objetivo: ${plan.objetivo.orEmpty()}")
+
+
+                        if (!plan.asignadoAlumno &&
+                            !plan.respuestaEntregada
+                        ) {
+
+                            OutlinedButton(
+                                onClick = {
+                                    idAEliminar = plan.id
+                                },
+                                enabled = !ocupado && plan.id != null,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = if (consultaDocente.eliminandoId == plan.id)
+                                        "Eliminando..."
+                                    else
+                                        "Eliminar planificación",
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+
+                        } else {
+
+                            Text(
+                                text = "Actividad protegida contra eliminación",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        }
+
+
+                        if (plan.asignadoAlumno) {
+                            Text(
+                                text = "✓ Asignada al alumno",
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        } else {
+                            Button(
+                                onClick = {
+                                    plan.id?.let(onAsignarRemota)
+                                },
+                                enabled = !consultaDocente.cargando &&
+                                        consultaDocente.asignandoId == null &&
+                                        plan.id != null,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    if (consultaDocente.asignandoId == plan.id)
+                                        "Asignando..."
+                                    else
+                                        "Asignar al alumno"
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+
             // Muestra la tarjeta si UTP ya autorizó el contenido
             item {
-                if (gestionUiState.autorizado) {
+                if (gestionUiState.autorizado &&
+                    gestionUiState.idRemoto == null
+                ) {
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(
                             modifier = Modifier.padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Text(
-                                text = "Contenido autorizado por UTP",
+                                text = "Contenido autorizado · práctica local",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -171,38 +359,25 @@ fun PanelDocenteScreen(
 
                         Text(text = "Disponibilidad: ${unidad.disponibilidad}")
                         Text(
-                            text = "Intentos configurados actualmente: $intentosGlobales",
+                            text = "Configuración global de evaluación",
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.primary
                         )
                         Text(text = "Rendimiento: ${unidad.rendimientoPromedio}")
 
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            // Suma persistente
-                            Button(
-                                onClick = {
-                                    scope.launch {
-                                        configuracionStore.guardarIntentoYNota(intentosGlobales + 1, 0)
-                                    }
-                                },
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text("Aumentar Intento (+1)")
-                            }
 
-                            OutlinedButton(
-                                onClick = { navController?.navigate(Screen.ConfiguracionExamen.route) },
-                                enabled = navController != null,
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text("Configurar Prueba")
-                            }
+                        OutlinedButton(
+                            onClick = {
+                                navController?.navigate(
+                                    Screen.ConfiguracionExamen.route
+                                )
+                            },
+                            enabled = navController != null,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Configurar Prueba")
                         }
+
                     }
                 }
             }
@@ -210,10 +385,13 @@ fun PanelDocenteScreen(
     }
 }
 
+
 @Preview(name = "Vista Celular - Panel Docente", showBackground = true, widthDp = 360, heightDp = 800)
 @Composable
 fun PanelDocenteScreenPreview() {
     MaterialTheme {
-        PanelDocenteScreen()
+        PanelDocenteScreen(
+            onEliminarRemota = {}
+        )
     }
 }

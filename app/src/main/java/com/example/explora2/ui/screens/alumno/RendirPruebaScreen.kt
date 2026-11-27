@@ -56,6 +56,12 @@ import kotlinx.coroutines.launch
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
+import com.example.explora2.viewmodel.ConfiguracionExamenViewModel
+import com.example.explora2.data.model.ConfiguracionExamenDto
+import kotlinx.coroutines.CancellationException
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 data class PreguntaEvaluacion(
     val asignatura: String,
@@ -93,31 +99,117 @@ private fun reproducirCryEvaluacion(
     }
 }
 
+
+private fun errorDisponibilidad(
+    datos: ConfiguracionExamenDto
+): String? {
+
+    if (datos.intentosPermitidos !in 1..5) {
+        return "La configuración de intentos no es válida."
+    }
+
+    if (datos.version.isNullOrBlank()) {
+        return "La evaluación no tiene una versión válida."
+    }
+
+    val formato = SimpleDateFormat(
+        "dd/MM/yyyy",
+        Locale.ROOT
+    ).apply {
+        isLenient = false
+    }
+
+    val patron = Regex("[0-9]{2}/[0-9]{2}/[0-9]{4}")
+
+    val inicioTexto = datos.fechaInicio.orEmpty()
+    val finTexto = datos.fechaFin.orEmpty()
+
+    if (!patron.matches(inicioTexto) ||
+        !patron.matches(finTexto)
+    ) {
+        return "Las fechas de evaluación no son válidas."
+    }
+
+    val inicio = runCatching {
+        formato.parse(inicioTexto)
+    }.getOrNull()
+
+    val fin = runCatching {
+        formato.parse(finTexto)
+    }.getOrNull()
+
+    val hoy = formato.parse(
+        formato.format(Date())
+    ) ?: return "No se pudo comprobar la fecha."
+
+    if (inicio == null || fin == null ||
+        fin.before(inicio)
+    ) {
+        return "Las fechas de evaluación no son válidas."
+    }
+
+    if (hoy.before(inicio)) {
+        return "La evaluación todavía no está disponible."
+    }
+
+    if (hoy.after(fin)) {
+        return "El plazo de la evaluación ha terminado."
+    }
+
+    return null
+}
+
+
+
 @Composable
 fun RendirPruebaScreen(
     navController: NavController,
     pokemonViewModel: PokemonViewModel = viewModel(),
-    onEntregaDocente: ((titulo: String, asignatura: String, unidad: String, nota: String, respuesta: String) -> Unit)? = null
+    onEntregaDocente: ((
+        titulo: String,
+        asignatura: String,
+        unidad: String,
+        nota: String,
+        respuesta: String
+    ) -> Unit)? = null,
+    configuracionViewModel: ConfiguracionExamenViewModel =
+        viewModel()
 ) {
+
     val contexto = LocalContext.current
-    val scope = rememberCoroutineScope()
 
-    val materiaRecibida = navController.previousBackStackEntry
-        ?.savedStateHandle
-        ?.get<String>("materia") ?: "Lenguaje"
+    val materiaRecibida =
+        navController.previousBackStackEntry
+            ?.savedStateHandle
+            ?.get<String>("materia") ?: "Lenguaje"
 
-    val unidadRecibida = navController.previousBackStackEntry
-        ?.savedStateHandle
-        ?.get<String>("unidad") ?: "Unidad 1"
+    val unidadRecibida =
+        navController.previousBackStackEntry
+            ?.savedStateHandle
+            ?.get<String>("unidad") ?: "Unidad 1"
 
-    val configuracionStore = remember { ConfiguracionStore(contexto) }
-    val intentosRestantes by configuracionStore.intentosRestantesFlow.collectAsState(initial = 2)
-    val ultimoPuntaje by configuracionStore.ultimoPuntajeFlow.collectAsState(initial = 0)
+    val configuracionStore = remember {
+        ConfiguracionStore(contexto)
+    }
 
-    val audioHelper = remember { Audio(contexto) }
+    val progreso by configuracionStore
+        .progresoEvaluacionFlow
+        .collectAsState(initial = null)
+
+    val estadoRemoto by
+    configuracionViewModel.estado.collectAsState()
+
+    val audioHelper = remember {
+        Audio(contexto)
+    }
 
     LaunchedEffect(Unit) {
-        pokemonViewModel.cargarPokemonEspecifico(385, "¡Jirachi te desea mucha suerte en tu desafío!")
+        configuracionViewModel.cargar()
+
+        pokemonViewModel.cargarPokemonEspecifico(
+            385,
+            "¡Jirachi te desea mucha suerte en tu desafío!"
+        )
     }
 
     DisposableEffect(Unit) {
@@ -126,19 +218,102 @@ fun RendirPruebaScreen(
         }
     }
 
+    val configuracion = estadoRemoto.borrador
+    val progresoActual = progreso
+
+    val mensajeBloqueo = when {
+
+        estadoRemoto.cargando ->
+            "Cargando evaluación..."
+
+        estadoRemoto.error != null ->
+            estadoRemoto.error
+
+        !estadoRemoto.cargado ->
+            "No se pudo cargar la evaluación."
+
+        configuracion.id == null ->
+            "El docente todavía no ha configurado la evaluación."
+
+        progresoActual == null ->
+            "Cargando tu progreso..."
+
+        else ->
+            errorDisponibilidad(configuracion)
+    }
+
+    if (mensajeBloqueo != null ||
+        progresoActual == null
+    ) {
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            verticalArrangement =
+                Arrangement.spacedBy(16.dp),
+            horizontalAlignment =
+                Alignment.CenterHorizontally
+        ) {
+
+            if (estadoRemoto.cargando) {
+                CircularProgressIndicator()
+            }
+
+            Text(
+                mensajeBloqueo
+                    ?: "Cargando tu progreso..."
+            )
+
+            OutlinedButton(
+                onClick = {
+                    configuracionViewModel.cargar()
+                },
+                enabled = !estadoRemoto.cargando
+            ) {
+                Text("Reintentar")
+            }
+
+            Button(
+                onClick = {
+                    navController.popBackStack()
+                }
+            ) {
+                Text("Volver")
+            }
+        }
+
+        return
+    }
+
+    val maximo = configuracion.intentosPermitidos
+
+    val restantes = (
+            maximo - progresoActual.intentosUsados
+            ).coerceAtLeast(0)
+
     RendirPruebaContent(
         materiaInicial = materiaRecibida,
         unidadInicial = unidadRecibida,
-        intentosRestantes = intentosRestantes,
-        ultimoPuntaje = ultimoPuntaje,
+        intentosRestantes = restantes,
+        ultimoPuntaje = progresoActual.ultimoPuntaje,
+        maximosIntentos = maximo,
+        versionExamen = configuracion.version.orEmpty(),
         pokemonViewModel = pokemonViewModel,
-        onVolverClick = { navController.popBackStack() },
-        onReproducirAudio = { texto -> audioHelper.hablar(texto) },
-        onVibrarError = { Vibracion.vibrarError(contexto) },
-        onGuardarIntento = { nuevosIntentos, puntaje ->
-            scope.launch {
-                configuracionStore.guardarIntentoYNota(nuevosIntentos, puntaje)
-            }
+        onVolverClick = {
+            navController.popBackStack()
+        },
+        onReproducirAudio = { texto ->
+            audioHelper.hablar(texto)
+        },
+        onVibrarError = {
+            Vibracion.vibrarError(contexto)
+        },
+        onGuardarIntento = { puntaje ->
+            configuracionStore.registrarIntento(
+                maximo,
+                puntaje
+            )
         },
         onEntregaDocente = onEntregaDocente,
         bottomBar = {
@@ -150,6 +325,8 @@ fun RendirPruebaScreen(
     )
 }
 
+
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RendirPruebaContent(
@@ -157,17 +334,27 @@ fun RendirPruebaContent(
     unidadInicial: String = "Unidad 1",
     intentosRestantes: Int,
     ultimoPuntaje: Int,
+    maximosIntentos: Int = 2,
+    versionExamen: String = "v1.2",
     pokemonViewModel: PokemonViewModel = viewModel(),
     onVolverClick: () -> Unit,
     onReproducirAudio: (String) -> Unit,
     onVibrarError: () -> Unit = {},
-    onGuardarIntento: (Int, Int) -> Unit,
+    onGuardarIntento: suspend (Int) -> Boolean,
     onEntregaDocente: ((String, String, String, String, String) -> Unit)? = null,
     bottomBar: @Composable () -> Unit = {
         BarraNavegacionInferiorContent(rutaActual = Screen.Asignaturas.route)
     }
 ) {
-    val maximosIntentos = 2
+    val scope = rememberCoroutineScope()
+
+    var guardandoIntento by remember {
+        mutableStateOf(false)
+    }
+
+    var errorGuardado by remember {
+        mutableStateOf<String?>(null)
+    }
     val colorBordeNegro = Color(0xFF1E1E1E)
 
     val evaluaciones = listOf(
@@ -385,6 +572,36 @@ fun RendirPruebaContent(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFFFFF3E0)
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = "📘 Versión: $versionExamen",
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFE65100)
+                        )
+
+                        Text(
+                            text = if (ultimoPuntaje == 0)
+                                "🏆 Todavía no tienes una calificación"
+                            else
+                                "🏆 Última calificación: $ultimoPuntaje/7",
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF2E7D32)
+                        )
+                    }
+                }
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -613,43 +830,95 @@ fun RendirPruebaContent(
                 }
 
                 Button(
+
                     onClick = {
-                        if (respuestaSeleccionada != null && intentosRestantes > 0) {
-                            val esCorrecto = (respuestaSeleccionada == evaluacionActual.respuestaCorrecta)
-                            notaCalculada = if (esCorrecto) 7 else 2
-                            val nuevosIntentos = intentosRestantes - 1
+                        val seleccion = respuestaSeleccionada
 
-                            onGuardarIntento(nuevosIntentos, notaCalculada)
-                            evaluacionEnviada = true
+                        if (seleccion != null &&
+                            intentosRestantes > 0 &&
+                            !evaluacionEnviada &&
+                            !guardandoIntento
+                        ) {
 
-                            val textoOpcionElegida = evaluacionActual.opciones[respuestaSeleccionada!!]
+                            guardandoIntento = true
+                            errorGuardado = null
 
-                            onEntregaDocente?.invoke(
-                                evaluacionActual.titulo,
-                                evaluacionActual.asignatura,
-                                evaluacionActual.unidad,
-                                "$notaCalculada/7 puntos",
-                                textoOpcionElegida
-                            )
+                            val esCorrecto =
+                                seleccion == evaluacionActual.respuestaCorrecta
 
-                            if (esCorrecto) {
-                                mensajeCelebracionJirachi = if (unidadActiva == "Unidad 1") {
-                                    "¡Bien hecho!"
-                                } else {
-                                    "¡Buen trabajo!"
+                            val puntaje = if (esCorrecto) 7 else 2
+
+                            scope.launch {
+                                try {
+                                    val registrado = onGuardarIntento(puntaje)
+
+                                    if (!registrado) {
+                                        errorGuardado =
+                                            "No tienes intentos disponibles."
+                                        return@launch
+                                    }
+
+                                    notaCalculada = puntaje
+                                    evaluacionEnviada = true
+
+                                    val textoOpcionElegida =
+                                        evaluacionActual.opciones[seleccion]
+
+                                    onEntregaDocente?.invoke(
+                                        evaluacionActual.titulo,
+                                        evaluacionActual.asignatura,
+                                        evaluacionActual.unidad,
+                                        "$notaCalculada/7 puntos",
+                                        textoOpcionElegida
+                                    )
+
+                                    if (esCorrecto) {
+
+                                        mensajeCelebracionJirachi =
+                                            if (unidadActiva == "Unidad 1")
+                                                "¡Bien hecho!"
+                                            else
+                                                "¡Buen trabajo!"
+
+                                        pokemonViewModel.cargarPokemonEspecifico(
+                                            385,
+                                            mensajeCelebracionJirachi
+                                        )
+
+                                        mostrarJirachiPantallaCompleta = true
+                                        mostrarDarkraiPantallaCompleta = false
+
+                                        onReproducirAudio(
+                                            "$mensajeCelebracionJirachi Respuesta correcta."
+                                        )
+
+                                    } else {
+
+                                        mostrarDarkraiPantallaCompleta = true
+                                        mostrarJirachiPantallaCompleta = false
+
+                                        onVibrarError()
+
+                                        onReproducirAudio(
+                                            "Respuesta incorrecta. " +
+                                                    evaluacionActual.explicacion
+                                        )
+                                    }
+
+                                } catch (e: CancellationException) {
+                                    throw e
+
+                                } catch (e: Exception) {
+                                    errorGuardado =
+                                        "No se pudo completar la evaluación. Revisa tu progreso."
+
+                                } finally {
+                                    guardandoIntento = false
                                 }
-                                pokemonViewModel.cargarPokemonEspecifico(385, mensajeCelebracionJirachi)
-                                mostrarJirachiPantallaCompleta = true
-                                mostrarDarkraiPantallaCompleta = false
-                                onReproducirAudio("$mensajeCelebracionJirachi Respuesta correcta.")
-                            } else {
-                                mostrarDarkraiPantallaCompleta = true
-                                mostrarJirachiPantallaCompleta = false
-                                onVibrarError()
-                                onReproducirAudio("Respuesta incorrecta. " + evaluacionActual.explicacion)
                             }
                         }
                     },
+
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
@@ -659,7 +928,10 @@ fun RendirPruebaContent(
                         containerColor = Color(0xFF43A047),
                         disabledContainerColor = Color(0xFFC8E6C9)
                     ),
-                    enabled = respuestaSeleccionada != null && !evaluacionEnviada && intentosRestantes > 0
+                    enabled = respuestaSeleccionada != null &&
+                            !evaluacionEnviada &&
+                            intentosRestantes > 0 &&
+                            !guardandoIntento
                 ) {
                     Icon(Icons.Default.CheckCircle, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
@@ -1394,7 +1666,7 @@ fun RendirPruebaScreenPreview() {
             ultimoPuntaje = 0,
             onVolverClick = {},
             onReproducirAudio = {},
-            onGuardarIntento = { _, _ -> }
+            onGuardarIntento = { true }
         )
     }
 }

@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.explora2.model.GestionUiState
+import com.example.explora2.model.RevisionEntregasUiState
 
 data class EntregaEstudiante(
     val nombre: String,
@@ -18,12 +19,16 @@ data class EntregaEstudiante(
     val revisado: Boolean
 )
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RevisionEntregasScreen(
     navController: NavController,
-    gestionUiState: GestionUiState
+    gestionUiState: GestionUiState,
+    revisionEntregas: RevisionEntregasUiState,
+    onActualizarEntregas: () -> Unit
 ) {
+
 
     val entregas = listOf(
         EntregaEstudiante(
@@ -64,9 +69,101 @@ fun RevisionEntregasScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
+
+            item {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Entregas recibidas del servidor",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    OutlinedButton(
+                        onClick = onActualizarEntregas,
+                        enabled = !revisionEntregas.cargando,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Actualizar entregas")
+                    }
+
+                    if (revisionEntregas.cargando) {
+                        LinearProgressIndicator(
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
+                    revisionEntregas.error?.let {
+                        Text(
+                            text = it,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+
+                    if (!revisionEntregas.cargando &&
+                        revisionEntregas.error == null &&
+                        revisionEntregas.entregas.isEmpty()
+                    ) {
+                        Text("Todavía no hay actividades entregadas.")
+                    }
+                }
+            }
+
+            items(
+                revisionEntregas.entregas,
+                key = { "entrega-remota-${it.id}" }
+            ) { entrega ->
+
+                Card(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+
+                        Text(
+                            text = "#${entrega.id} · ${entrega.titulo.orEmpty()}",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+
+                        Text("Asignatura: ${entrega.asignatura.orEmpty()}")
+                        Text("Unidad: ${entrega.unidad.orEmpty()}")
+                        Text("Objetivo: ${entrega.objetivo.orEmpty()}")
+
+                        HorizontalDivider()
+
+                        Text(
+                            text = "Instrucciones:",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+
+                        Text(entrega.descripcion.orEmpty())
+
+                        HorizontalDivider()
+
+                        Text(
+                            text = "Respuesta del estudiante:",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+
+                        Text(
+                            text = entrega.respuestaAlumno.orEmpty()
+                        )
+
+                        Text(
+                            text = "✓ Estado: Entregado",
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+
+
             item {
                 Text(
-                    text = "Entrega del Alumno",
+                    text = "Entrega de práctica local",
                     style = MaterialTheme.typography.titleLarge
                 )
             }
@@ -80,7 +177,9 @@ fun RevisionEntregasScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
 
-                        if (gestionUiState.respuestaEntregada) {
+                        if (gestionUiState.respuestaEntregada &&
+                            gestionUiState.idRemoto == null
+                        ) {
 
                             Text(
                                 text = "Actividad: ${gestionUiState.titulo}"
