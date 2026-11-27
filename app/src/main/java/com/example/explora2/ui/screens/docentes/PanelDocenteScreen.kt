@@ -23,6 +23,7 @@ data class UnidadDocente(
     val rendimientoPromedio: String
 )
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PanelDocenteScreen(
@@ -32,8 +33,10 @@ fun PanelDocenteScreen(
     consultaDocente: ConsultaDocenteUiState =
         ConsultaDocenteUiState(cargando = false),
     onActualizarPlanificaciones: () -> Unit = {},
-    onAsignarRemota: (Long) -> Unit = {}
+    onAsignarRemota: (Long) -> Unit = {},
+    onEliminarRemota: (Long) -> Unit
 ) {
+
 
     val contexto = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -56,6 +59,64 @@ fun PanelDocenteScreen(
             rendimientoPromedio = "72% En Proceso"
         )
     )
+
+
+    var idAEliminar by remember {
+        mutableStateOf<Long?>(null)
+    }
+
+    val ocupado = consultaDocente.cargando ||
+            consultaDocente.asignandoId != null ||
+            consultaDocente.eliminandoId != null
+
+    idAEliminar?.let { id ->
+
+        val plan = consultaDocente.planificaciones
+            .firstOrNull { it.id == id }
+
+        AlertDialog(
+            onDismissRequest = {
+                idAEliminar = null
+            },
+            title = {
+                Text("Eliminar planificación")
+            },
+            text = {
+                Text(
+                    "¿Estás seguro de eliminar la planificación " +
+                            "#$id: ${plan?.titulo.orEmpty()}? " +
+                            "Esta acción no se puede deshacer."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = !ocupado &&
+                            plan != null &&
+                            !plan.asignadoAlumno &&
+                            !plan.respuestaEntregada,
+                    onClick = {
+                        idAEliminar = null
+                        onEliminarRemota(id)
+                    }
+                ) {
+                    Text(
+                        text = "Eliminar",
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        idAEliminar = null
+                    }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
 
     Scaffold(
         topBar = {
@@ -122,22 +183,23 @@ fun PanelDocenteScreen(
                         color = MaterialTheme.colorScheme.primary
                     )
 
+
                     OutlinedButton(
                         onClick = onActualizarPlanificaciones,
-                        enabled = !consultaDocente.cargando &&
-                                consultaDocente.asignandoId == null,
+                        enabled = !ocupado,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("Actualizar planificaciones")
                     }
 
-                    if (consultaDocente.cargando ||
-                        consultaDocente.asignandoId != null
-                    ) {
+
+
+                    if (ocupado) {
                         LinearProgressIndicator(
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
+
 
                     consultaDocente.error?.let {
                         Text(
@@ -175,6 +237,37 @@ fun PanelDocenteScreen(
                         Text("Asignatura: ${plan.asignatura.orEmpty()}")
                         Text("Unidad: ${plan.unidad.orEmpty()}")
                         Text("Objetivo: ${plan.objetivo.orEmpty()}")
+
+
+                        if (!plan.asignadoAlumno &&
+                            !plan.respuestaEntregada
+                        ) {
+
+                            OutlinedButton(
+                                onClick = {
+                                    idAEliminar = plan.id
+                                },
+                                enabled = !ocupado && plan.id != null,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = if (consultaDocente.eliminandoId == plan.id)
+                                        "Eliminando..."
+                                    else
+                                        "Eliminar planificación",
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+
+                        } else {
+
+                            Text(
+                                text = "Actividad protegida contra eliminación",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        }
+
 
                         if (plan.asignadoAlumno) {
                             Text(
@@ -310,10 +403,13 @@ fun PanelDocenteScreen(
     }
 }
 
+
 @Preview(name = "Vista Celular - Panel Docente", showBackground = true, widthDp = 360, heightDp = 800)
 @Composable
 fun PanelDocenteScreenPreview() {
     MaterialTheme {
-        PanelDocenteScreen()
+        PanelDocenteScreen(
+            onEliminarRemota = {}
+        )
     }
 }

@@ -6,5 +6,7 @@ data class ConsultaDocenteUiState(
     val cargando: Boolean = true,
     val planificaciones: List<PlanificacionDto> = emptyList(),
     val asignandoId: Long? = null,
-    val error: String? = null
+    val error: String? = null,
+    val eliminandoId: Long? = null,
+    val mensaje: String? = null
 )

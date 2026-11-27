@@ -852,6 +852,219 @@ class GestionRemotaTest : FunSpec({
         assertFalse(vm.revisionEntregas.value.cargando)
     }
 
+    test("docente elimina una planificacion no asignada") {
+
+        val eliminable = plan.copy(
+            validado = true,
+            autorizado = true,
+            asignadoAlumno = false,
+            respuestaEntregada = false
+        )
+
+        coEvery { api.listar() } returnsMany
+                listOf(listOf(eliminable), emptyList())
+
+        coEvery { api.obtenerPorId(47) } returns eliminable
+
+        coEvery { api.eliminar(47) } returns
+                Response.success<Unit>(204, null)
+
+        vm.cargarPlanificacionesDocente()
+        vm.eliminarPlanificacion(47)
+
+        assertTrue(
+            vm.consultaDocente.value.planificaciones.isEmpty()
+        )
+
+        assertNotNull(vm.consultaDocente.value.mensaje)
+        assertNull(vm.consultaDocente.value.error)
+        assertNull(vm.consultaDocente.value.eliminandoId)
+
+        coVerify(exactly = 1) {
+            api.eliminar(47)
+        }
+    }
+
+    test("docente no puede eliminar una actividad asignada") {
+
+        val asignada = plan.copy(
+            validado = true,
+            autorizado = true,
+            asignadoAlumno = true,
+            respuestaEntregada = false
+        )
+
+        coEvery { api.listar() } returns listOf(asignada)
+
+        coEvery { api.obtenerPorId(47) } returns asignada
+
+        vm.cargarPlanificacionesDocente()
+        vm.eliminarPlanificacion(47)
+
+        assertNotNull(vm.consultaDocente.value.error)
+        assertNull(vm.consultaDocente.value.eliminandoId)
+
+        assertEquals(
+            listOf(asignada),
+            vm.consultaDocente.value.planificaciones
+        )
+
+        coVerify(exactly = 0) {
+            api.eliminar(any())
+        }
+    }
+
+    test("docente no puede eliminar una actividad entregada") {
+
+        val entregada = plan.copy(
+            validado = true,
+            autorizado = true,
+            asignadoAlumno = true,
+            respuestaEntregada = true,
+            respuestaAlumno = "Respuesta del alumno"
+        )
+
+        coEvery { api.listar() } returns listOf(entregada)
+
+        coEvery { api.obtenerPorId(47) } returns entregada
+
+        vm.cargarPlanificacionesDocente()
+        vm.eliminarPlanificacion(47)
+
+        assertNotNull(vm.consultaDocente.value.error)
+
+        assertEquals(
+            entregada,
+            vm.consultaDocente.value.planificaciones.first()
+        )
+
+        coVerify(exactly = 0) {
+            api.eliminar(any())
+        }
+    }
+
+    test("error de conexion conserva la planificacion") {
+
+        val eliminable = plan.copy(
+            validado = true,
+            autorizado = true,
+            asignadoAlumno = false,
+            respuestaEntregada = false
+        )
+
+        coEvery { api.listar() } returns listOf(eliminable)
+
+        coEvery { api.obtenerPorId(47) } returns eliminable
+
+        coEvery {
+            api.eliminar(47)
+        } throws ConnectException()
+
+        vm.cargarPlanificacionesDocente()
+        vm.eliminarPlanificacion(47)
+
+        assertEquals(
+            listOf(eliminable),
+            vm.consultaDocente.value.planificaciones
+        )
+
+        assertNotNull(vm.consultaDocente.value.error)
+        assertNull(vm.consultaDocente.value.mensaje)
+        assertNull(vm.consultaDocente.value.eliminandoId)
+    }
+
+    test("eliminar una planificacion conserva las restantes") {
+
+        val eliminable = plan.copy(
+            validado = true,
+            autorizado = true,
+            asignadoAlumno = false,
+            respuestaEntregada = false
+        )
+
+        val protegida = eliminable.copy(
+            id = 48,
+            asignadoAlumno = true,
+            respuestaEntregada = true,
+            respuestaAlumno = "Respuesta original"
+        )
+
+        coEvery { api.listar() } returnsMany
+                listOf(
+                    listOf(eliminable, protegida),
+                    listOf(protegida)
+                )
+
+        coEvery { api.obtenerPorId(47) } returns eliminable
+
+        coEvery { api.eliminar(47) } returns
+                Response.success<Unit>(204, null)
+
+        vm.cargarPlanificacionesDocente()
+        vm.eliminarPlanificacion(47)
+
+        assertEquals(
+            listOf(protegida),
+            vm.consultaDocente.value.planificaciones
+        )
+
+        coVerify(exactly = 1) {
+            api.eliminar(47)
+        }
+
+        coVerify(exactly = 0) {
+            api.eliminar(48)
+        }
+    }
+
+    test("dos pulsaciones solo realizan una eliminacion") {
+
+        val eliminable = plan.copy(
+            validado = true,
+            autorizado = true,
+            asignadoAlumno = false,
+            respuestaEntregada = false
+        )
+
+        val pendiente =
+            CompletableDeferred<Response<Unit>>()
+
+        coEvery { api.listar() } returnsMany
+                listOf(listOf(eliminable), emptyList())
+
+        coEvery { api.obtenerPorId(47) } returns eliminable
+
+        coEvery {
+            api.eliminar(47)
+        } coAnswers {
+            pendiente.await()
+        }
+
+        vm.cargarPlanificacionesDocente()
+
+        vm.eliminarPlanificacion(47)
+        vm.eliminarPlanificacion(47)
+
+        assertEquals(
+            47L,
+            vm.consultaDocente.value.eliminandoId
+        )
+
+        pendiente.complete(
+            Response.success<Unit>(204, null)
+        )
+
+        coVerify(exactly = 1) {
+            api.eliminar(47)
+        }
+
+        assertNull(vm.consultaDocente.value.eliminandoId)
+
+        assertTrue(
+            vm.consultaDocente.value.planificaciones.isEmpty()
+        )
+    }
+
 
 
 

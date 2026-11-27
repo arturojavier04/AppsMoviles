@@ -310,7 +310,9 @@ class GestionViewModel(
 
     fun cargarPlanificacionesDocente() {
 
-        if (_consultaDocente.value.asignandoId != null) return
+        if (_consultaDocente.value.asignandoId != null ||
+            _consultaDocente.value.eliminandoId != null
+        ) return
 
         consultaDocenteActiva?.cancel()
 
@@ -351,6 +353,7 @@ class GestionViewModel(
     fun asignarPlanificacion(id: Long) {
 
         if (_consultaDocente.value.asignandoId != null ||
+            _consultaDocente.value.eliminandoId != null ||
             _consultaDocente.value.cargando
         ) return
 
@@ -426,6 +429,100 @@ class GestionViewModel(
     }
 
 
+
+    fun eliminarPlanificacion(id: Long) {
+
+        val estado = _consultaDocente.value
+
+        if (estado.cargando ||
+            estado.asignandoId != null ||
+            estado.eliminandoId != null
+        ) return
+
+        _consultaDocente.update {
+            it.copy(
+                eliminandoId = id,
+                error = null,
+                mensaje = null
+            )
+        }
+
+        viewModelScope.launch {
+            try {
+                val actual = repositorio.obtenerPorId(id)
+
+                if (actual.id != id) {
+                    throw IllegalStateException(
+                        "Identificador incorrecto"
+                    )
+                }
+
+                if (actual.asignadoAlumno ||
+                    actual.respuestaEntregada
+                ) {
+                    _consultaDocente.update {
+                        it.copy(
+                            error = "No puedes eliminar una actividad asignada o entregada."
+                        )
+                    }
+                    return@launch
+                }
+
+                repositorio.eliminar(id)
+
+                _consultaDocente.update { anterior ->
+                    anterior.copy(
+                        planificaciones =
+                            anterior.planificaciones.filter {
+                                it.id != id
+                            },
+                        mensaje = "Planificación #$id eliminada correctamente."
+                    )
+                }
+
+                // Consultar nuevamente el estado del servidor.
+                try {
+                    val lista = repositorio.listarAutorizadas()
+
+                    _consultaDocente.update {
+                        it.copy(planificaciones = lista)
+                    }
+
+                } catch (e: CancellationException) {
+                    throw e
+
+                } catch (e: Exception) {
+                    _consultaDocente.update {
+                        it.copy(
+                            error = "La planificación fue eliminada, pero no se pudo actualizar la lista."
+                        )
+                    }
+                }
+
+            } catch (e: CancellationException) {
+                throw e
+
+            } catch (e: Exception) {
+                val mensaje =
+                    if (e is HttpException && e.code() == 404) {
+                        "La planificación ya no existe. Actualiza la lista."
+                    } else {
+                        "No se pudo confirmar la eliminación. Actualiza la lista."
+                    }
+
+                _consultaDocente.update {
+                    it.copy(error = mensaje)
+                }
+
+            } finally {
+                _consultaDocente.update {
+                    it.copy(eliminandoId = null)
+                }
+            }
+        }
+    }
+
+
     fun asignarAlAlumno() {
         _estado.update {
             it.copy(
@@ -434,6 +531,8 @@ class GestionViewModel(
             )
         }
     }
+
+
 
     // Actualizacion de la respuesta del alumno
 
