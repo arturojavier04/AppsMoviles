@@ -245,7 +245,12 @@ fun AppNavigation() {
         composable(Screen.AutorizacionUnidades.route) {
             val estado by gestionViewModel.estado.collectAsState()
 
+            val consulta by gestionViewModel.consulta.collectAsState()
+            androidx.compose.runtime.LaunchedEffect(Unit) { gestionViewModel.cargarSolicitudes() }
             AutorizacionUtpScreen(
+                consulta = consulta,
+                onActualizar = gestionViewModel::cargarSolicitudes,
+                onDetalle = gestionViewModel::consultarDetalle,
                 navController = navController,
                 gestionUiState = estado,
                 onAprobarClick = gestionViewModel::aprobarContenido

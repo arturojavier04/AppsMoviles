@@ -1,13 +1,29 @@
 package com.example.explora2.viewmodel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.explora2.data.model.PlanificacionDto
+import com.example.explora2.model.ConsultaUtpUiState
+import com.example.explora2.repository.PlanificacionRepository
+import java.net.ConnectException
+import java.net.NoRouteToHostException
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import retrofit2.HttpException
 import com.example.explora2.model.GestionErrores
 import com.example.explora2.model.GestionUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 
-class GestionViewModel : ViewModel() {
+class GestionViewModel(
+    private val repositorio: PlanificacionRepository = PlanificacionRepository()
+) : ViewModel() {
+    private val _consulta = MutableStateFlow(ConsultaUtpUiState())
+    val consulta: StateFlow<ConsultaUtpUiState> = _consulta
+    private var consultaActiva: Job? = null
+
 
     private val _estado = MutableStateFlow(GestionUiState())
     val estado: StateFlow<GestionUiState> = _estado
@@ -109,8 +125,59 @@ class GestionViewModel : ViewModel() {
 
     // Envio del contenido a UTP
     fun enviarAUtp() {
-        _estado.update {
-            it.copy(enviadoUtp = true)
+        if (_estado.value.enviando || _estado.value.idRemoto != null || !validarFormulario()) return
+        val borrador = _estado.value
+        val datos = PlanificacionDto(
+            asignatura = borrador.asignatura, unidad = borrador.unidad, objetivo = borrador.objetivo,
+            tipoRecurso = borrador.tipoRecurso, titulo = borrador.titulo, descripcion = borrador.descripcion,
+            validado = true, enviadoUtp = true, respuestaAlumno = ""
+        )
+        _estado.update { it.copy(enviando = true, errorEnvio = null) }
+        viewModelScope.launch {
+            try {
+                val id = repositorio.crear(datos)
+                _estado.update { it.copy(idRemoto = id, enviadoUtp = true, enviando = false) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                val mensaje = when (e) {
+                    is ConnectException, is NoRouteToHostException ->
+                        "No se pudo conectar. Conservamos el borrador para reintentar."
+                    else -> "No se pudo confirmar el envío. Revisa las solicitudes de UTP antes de volver a enviarlo."
+                }
+                _estado.update { it.copy(enviando = false, errorEnvio = mensaje) }
+            }
+        }
+    }
+
+    fun cargarSolicitudes() {
+        consultaActiva?.cancel()
+        _consulta.value = ConsultaUtpUiState()
+        consultaActiva = viewModelScope.launch {
+            try {
+                _consulta.value = ConsultaUtpUiState(cargando = false, solicitudes = repositorio.listarEnviadas())
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _consulta.value = ConsultaUtpUiState(cargando = false, error = "No se pudieron cargar las solicitudes.")
+            }
+        }
+    }
+
+    fun consultarDetalle(id: Long) {
+        consultaActiva?.cancel()
+        _consulta.update { it.copy(cargando = true, detalle = null, error = null) }
+        consultaActiva = viewModelScope.launch {
+            try {
+                val plan = repositorio.obtenerPorId(id)
+                _consulta.update { it.copy(cargando = false, detalle = plan) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                val mensaje = if (e is HttpException && e.code() == 404)
+                    "Esta solicitud ya no está disponible." else "No se pudo cargar el detalle."
+                _consulta.update { it.copy(cargando = false, error = mensaje) }
+            }
         }
     }
 

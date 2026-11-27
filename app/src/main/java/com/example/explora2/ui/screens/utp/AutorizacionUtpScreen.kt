@@ -12,6 +12,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.example.explora2.model.ConsultaUtpUiState
 import com.example.explora2.model.GestionUiState
 
 data class SolicitudUnidad(
@@ -33,6 +34,9 @@ private val estadoSolicitudesGlobales = mutableStateListOf(
 fun AutorizacionUtpScreen(
     navController: NavController? = null,
     gestionUiState: GestionUiState = GestionUiState(),
+    consulta: ConsultaUtpUiState = ConsultaUtpUiState(cargando = false),
+    onActualizar: () -> Unit = {},
+    onDetalle: (Long) -> Unit = {},
     onAprobarClick: () -> Unit = {}
 ) {
     Scaffold(
@@ -59,7 +63,35 @@ fun AutorizacionUtpScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // TARJETA DE LO QUE CREÓ Y ENVIÓ EL DOCENTE EN TIEMPO REAL
+            item {
+                Text("Planificaciones enviadas a UTP", style = MaterialTheme.typography.titleMedium)
+                OutlinedButton(onClick = onActualizar, enabled = !consulta.cargando) { Text("Actualizar lista") }
+                if (consulta.cargando) LinearProgressIndicator()
+                consulta.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                if (!consulta.cargando && consulta.error == null && consulta.solicitudes.isEmpty()) {
+                    Text("Aún no hay planificaciones enviadas.")
+                }
+            }
+            consulta.detalle?.let { plan ->
+                item {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text("Detalle #${plan.id} · ${plan.titulo.orEmpty()}", style = MaterialTheme.typography.titleMedium)
+                            Text("Asignatura: ${plan.asignatura.orEmpty()}")
+                            Text("Unidad: ${plan.unidad.orEmpty()}")
+                            Text("Objetivo: ${plan.objetivo.orEmpty()}")
+                            Text("Recurso: ${plan.tipoRecurso.orEmpty()}")
+                            Text("Instrucción: ${plan.descripcion.orEmpty()}")
+                            Text(if (plan.autorizado) "Autorizada en el servidor" else "Pendiente en el servidor")
+                        }
+                    }
+                }
+            }
+            items(consulta.solicitudes, key = { "remota-${it.id}" }) { plan ->
+                OutlinedButton(onClick = { plan.id?.let(onDetalle) }, enabled = !consulta.cargando) {
+                    Text("#${plan.id} · ${plan.titulo.orEmpty()} · ${plan.asignatura.orEmpty()} · ${plan.unidad.orEmpty()}")
+                }
+            }
             if (gestionUiState.enviadoUtp) {
                 item {
                     Card(
@@ -74,7 +106,7 @@ fun AutorizacionUtpScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Text(
-                                text = "📌 Solicitud Reciente del Docente",
+                                text = "Solicitud del docente · práctica en esta sesión",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -94,7 +126,7 @@ fun AutorizacionUtpScreen(
                                     shape = MaterialTheme.shapes.small
                                 ) {
                                     Text(
-                                        text = "✓ Contenido Autorizado para el Curso",
+                                        text = "✓ Autorizado en esta sesión",
                                         color = MaterialTheme.colorScheme.onPrimary,
                                         style = MaterialTheme.typography.titleSmall,
                                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
@@ -105,7 +137,7 @@ fun AutorizacionUtpScreen(
                                     onClick = onAprobarClick,
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Text("Autorizar contenido para Docente y Alumno")
+                                    Text("Autorizar en esta sesión")
                                 }
                             }
                         }
@@ -115,7 +147,7 @@ fun AutorizacionUtpScreen(
 
             item {
                 Text(
-                    text = "Otras solicitudes curriculares",
+                    text = "Otras solicitudes curriculares · práctica local",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.outline
                 )

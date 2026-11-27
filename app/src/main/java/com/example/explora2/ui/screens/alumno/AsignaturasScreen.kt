@@ -1,6 +1,9 @@
 package com.example.explora2.ui.screens.alumno
 
+import android.media.MediaPlayer
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -12,7 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -25,15 +28,47 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
+import com.example.explora2.R
 import com.example.explora2.navigation.Screen
 import com.example.explora2.ui.components.BarraNavegacionInferior
 import com.example.explora2.ui.components.BarraNavegacionInferiorContent
-import com.example.explora2.ui.components.IconoLibroInfantil
+
+private fun reproducirCryEevee(
+    urlAudio: String,
+    onPlayerCreated: (MediaPlayer) -> Unit
+) {
+    try {
+        val player = MediaPlayer().apply {
+            setDataSource(urlAudio)
+            setOnPreparedListener {
+                onPlayerCreated(it)
+                it.start()
+            }
+            setOnCompletionListener {
+                it.release()
+            }
+            setOnErrorListener { mp, _, _ ->
+                mp.release()
+                true
+            }
+            prepareAsync()
+        }
+        onPlayerCreated(player)
+    } catch (_: Exception) {
+        // Evita fallos si no hay conexión o el dispositivo no puede reproducir el stream
+    }
+}
 
 @Composable
 fun AsignaturasScreen(navController: NavController) {
@@ -69,144 +104,291 @@ fun AsignaturasContent(
         BarraNavegacionInferiorContent(rutaActual = Screen.Asignaturas.route)
     }
 ) {
-    Scaffold(
-        containerColor = Color(0xFFFFFDE7), // Fondo crema pastel infantil
-        topBar = {
-            Surface(
-                shape = RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp),
-                shadowElevation = 8.dp
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            brush = Brush.horizontalGradient(
-                                colors = listOf(
-                                    Color(0xFFFF7043), // Coral alegre
-                                    Color(0xFFFFB300)  // Amarillo sol
+    val colorBordeNegro = Color(0xFF1E1E1E)
+    var mostrarBienvenidaEevee by remember { mutableStateOf(true) }
+    var yaSonoAlPasarDedo by remember { mutableStateOf(false) }
+    var reproductorActivo by remember { mutableStateOf<MediaPlayer?>(null) }
+
+    val urlCryEevee = "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/133.ogg"
+
+    DisposableEffect(Unit) {
+        onDispose {
+            reproductorActivo?.runCatching {
+                if (isPlaying) stop()
+                release()
+            }
+            reproductorActivo = null
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            containerColor = Color(0xFFFFFDE7),
+            topBar = {
+                Surface(
+                    shape = RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp),
+                    shadowElevation = 8.dp
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                brush = Brush.horizontalGradient(
+                                    colors = listOf(
+                                        Color(0xFFFF7043),
+                                        Color(0xFFFFB300)
+                                    )
                                 )
                             )
-                        )
-                ) {
-                    TopAppBar(
-                        title = {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(38.dp)
-                                        .clip(CircleShape)
-                                        .background(Color.White),
-                                    contentAlignment = Alignment.Center
+                    ) {
+                        TopAppBar(
+                            title = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    IconoLibroInfantil(modifier = Modifier.size(28.dp))
-                                }
-                                Column {
-                                    Text(
-                                        text = "Mis Asignaturas",
-                                        fontWeight = FontWeight.ExtraBold,
-                                        fontSize = 20.sp,
-                                        color = Color.White
+                                    Image(
+                                        painter = painterResource(id = R.drawable.poke),
+                                        contentDescription = "Pokéball",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .size(34.dp)
+                                            .clip(CircleShape)
+                                            .border(2.dp, Color.White, CircleShape)
                                     )
-                                    Text(
-                                        text = "2.° Básico · Escuela Marcela Paz",
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 12.sp,
-                                        color = Color(0xFFFFF8E1)
+                                    Column {
+                                        Text(
+                                            text = "Mis Asignaturas",
+                                            fontWeight = FontWeight.ExtraBold,
+                                            fontSize = 19.sp,
+                                            color = Color.White
+                                        )
+                                        Text(
+                                            text = "2.° Básico · Explora2",
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontSize = 12.sp,
+                                            color = Color(0xFFFFF8E1)
+                                        )
+                                    }
+                                }
+                            },
+                            navigationIcon = {
+                                IconButton(
+                                    onClick = onVolverClick,
+                                    modifier = Modifier
+                                        .padding(start = 8.dp)
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.White.copy(alpha = 0.92f))
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = "Volver",
+                                        tint = Color(0xFFE65100),
+                                        modifier = Modifier.size(22.dp)
                                     )
                                 }
-                            }
-                        },
-                        navigationIcon = {
-                            IconButton(
-                                onClick = onVolverClick,
-                                modifier = Modifier
-                                    .padding(start = 8.dp)
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.White.copy(alpha = 0.92f))
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = "Volver",
-                                    tint = Color(0xFFE65100),
-                                    modifier = Modifier.size(22.dp)
-                                )
-                            }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = Color.Transparent
+                            },
+                            actions = {
+                                Surface(
+                                    shape = RoundedCornerShape(18.dp),
+                                    color = Color.White.copy(alpha = 0.92f),
+                                    modifier = Modifier.padding(end = 12.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                    ) {
+                                        Image(
+                                            painter = painterResource(id = R.drawable.poke),
+                                            contentDescription = "Pokéball",
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier
+                                                .size(22.dp)
+                                                .clip(CircleShape)
+                                        )
+                                        Image(
+                                            painter = painterResource(id = R.drawable.ultra),
+                                            contentDescription = "Ultra Ball",
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier
+                                                .size(22.dp)
+                                                .clip(CircleShape)
+                                        )
+                                        Image(
+                                            painter = painterResource(id = R.drawable.master),
+                                            contentDescription = "Master Ball",
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier
+                                                .size(22.dp)
+                                                .clip(CircleShape)
+                                        )
+                                    }
+                                }
+                            },
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = Color.Transparent
+                            )
                         )
-                    )
+                    }
+                }
+            },
+            bottomBar = bottomBar
+        ) { espacioInterior ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(espacioInterior)
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "✨ Elige un ramo para jugar y aprender:",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFF5D4037),
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                )
+
+                // 1. LENGUAJE Y COMUNICACIÓN
+                TarjetaMateriaKawaii(
+                    titulo = "Lenguaje y Comunicación",
+                    descripcion = "Lectura fluida, fábulas y comprensión lectora",
+                    colorFondo = Color(0xFFE0F2F1),
+                    colorBorde = Color(0xFFFFD600),
+                    colorTexto = Color(0xFF00695C),
+                    onClick = onLenguajeClick
+                ) {
+                    IconoLibroInfantil(modifier = Modifier.size(42.dp))
+                }
+
+                // 2. MATEMÁTICA
+                TarjetaMateriaKawaii(
+                    titulo = "Matemática",
+                    descripcion = "Números, sumas y restas hasta el 100",
+                    colorFondo = Color(0xFFE3F2FD),
+                    colorBorde = Color(0xFF1E88E5),
+                    colorTexto = Color(0xFF0D47A1),
+                    onClick = onMatematicaClick
+                ) {
+                    IconoMateKawaii(modifier = Modifier.size(42.dp))
+                }
+
+                // 3. CIENCIAS NATURALES
+                TarjetaMateriaKawaii(
+                    titulo = "Ciencias Naturales",
+                    descripcion = "Seres vivos, el cuerpo humano y su hábitat",
+                    colorFondo = Color(0xFFE8F5E9),
+                    colorBorde = Color(0xFF43A047),
+                    colorTexto = Color(0xFF1B5E20),
+                    onClick = onCienciasClick
+                ) {
+                    IconoCienciasKawaii(modifier = Modifier.size(42.dp))
+                }
+
+                // 4. HISTORIA Y GEOGRAFÍA
+                TarjetaMateriaKawaii(
+                    titulo = "Historia y Geografía",
+                    descripcion = "Nuestra comunidad, pueblos y paisajes de Chile",
+                    colorFondo = Color(0xFFFFF8E1),
+                    colorBorde = Color(0xFFFB8C00),
+                    colorTexto = Color(0xFFE65100),
+                    onClick = onHistoriaClick
+                ) {
+                    IconoHistoriaKawaii(modifier = Modifier.size(42.dp))
                 }
             }
-        },
-        bottomBar = bottomBar
-    ) { espacioInterior ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(espacioInterior)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Text(
-                text = "✨ Elige un ramo para jugar y aprender:",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = Color(0xFF5D4037),
-                modifier = Modifier.padding(horizontal = 4.dp)
-            )
+        }
 
-            // 1. LENGUAJE Y COMUNICACIÓN (CON BORDE AMARILLO BRILLANTE)
-            TarjetaMateriaKawaii(
-                titulo = "Lenguaje y Comunicación",
-                descripcion = "Lectura fluida, fábulas y comprensión lectora",
-                colorFondo = Color(0xFFE0F2F1),
-                colorBorde = Color(0xFFFFD600),
-                colorTexto = Color(0xFF00695C),
-                onClick = onLenguajeClick
+        // PANTALLA COMPLETA DE BIENVENIDA CON EEVEE (ID 133) EXPANDIDO + CRY AL PASAR EL DEDO
+        if (mostrarBienvenidaEevee) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0xFFFFFDE7),
+                                Color(0xFFE0F2F1)
+                            )
+                        )
+                    )
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
             ) {
-                IconoLibroInfantil(modifier = Modifier.size(42.dp))
-            }
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    Text(
+                        text = "¿Qué ramos veremos?",
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color(0xFF5D4037),
+                        textAlign = TextAlign.Center
+                    )
 
-            // 2. MATEMÁTICA
-            TarjetaMateriaKawaii(
-                titulo = "Matemática",
-                descripcion = "Números, sumas y restas hasta el 100",
-                colorFondo = Color(0xFFE3F2FD),
-                colorBorde = Color(0xFF1E88E5),
-                colorTexto = Color(0xFF0D47A1),
-                onClick = onMatematicaClick
-            ) {
-                IconoMateKawaii(modifier = Modifier.size(42.dp))
-            }
+                    AsyncImage(
+                        model = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/133.png",
+                        placeholder = painterResource(id = R.drawable.poke),
+                        error = painterResource(id = R.drawable.poke),
+                        contentDescription = "Eevee preguntando qué ramos veremos",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(290.dp)
+                            .pointerInput(urlCryEevee) {
+                                awaitPointerEventScope {
+                                    while (true) {
+                                        val event = awaitPointerEvent()
+                                        when (event.type) {
+                                            PointerEventType.Press, PointerEventType.Move -> {
+                                                if (!yaSonoAlPasarDedo) {
+                                                    yaSonoAlPasarDedo = true
+                                                    reproducirCryEevee(urlCryEevee) { mp ->
+                                                        reproductorActivo = mp
+                                                    }
+                                                }
+                                            }
+                                            PointerEventType.Release, PointerEventType.Exit -> {
+                                                yaSonoAlPasarDedo = false
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                        contentScale = ContentScale.Fit
+                    )
 
-            // 3. CIENCIAS NATURALES
-            TarjetaMateriaKawaii(
-                titulo = "Ciencias Naturales",
-                descripcion = "Seres vivos, el cuerpo humano y su hábitat",
-                colorFondo = Color(0xFFE8F5E9),
-                colorBorde = Color(0xFF43A047),
-                colorTexto = Color(0xFF1B5E20),
-                onClick = onCienciasClick
-            ) {
-                IconoCienciasKawaii(modifier = Modifier.size(42.dp))
-            }
+                    Text(
+                        text = "¡Pasa el dedo sobre Eevee para oírlo! ✨",
+                        fontSize = 19.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF00695C),
+                        textAlign = TextAlign.Center
+                    )
 
-            // 4. HISTORIA Y GEOGRAFÍA
-            TarjetaMateriaKawaii(
-                titulo = "Historia y Geografía",
-                descripcion = "Nuestra comunidad, pueblos y paisajes de Chile",
-                colorFondo = Color(0xFFFFF8E1),
-                colorBorde = Color(0xFFFB8C00),
-                colorTexto = Color(0xFFE65100),
-                onClick = onHistoriaClick
-            ) {
-                IconoHistoriaKawaii(modifier = Modifier.size(42.dp))
+                    Button(
+                        onClick = { mostrarBienvenidaEevee = false },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(58.dp),
+                        shape = RoundedCornerShape(20.dp),
+                        border = BorderStroke(3.dp, colorBordeNegro),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFFFB300),
+                            contentColor = colorBordeNegro
+                        )
+                    ) {
+                        Text(
+                            text = "¡Ver los ramos! 📚",
+                            fontSize = 19.sp,
+                            fontWeight = FontWeight.ExtraBold
+                        )
+                    }
+                }
             }
         }
     }
@@ -289,12 +471,51 @@ fun TarjetaMateriaKawaii(
 // =========================================================================
 
 @Composable
+private fun IconoLibroInfantil(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+
+        drawRoundRect(
+            color = Color.White,
+            topLeft = Offset(w * 0.20f, h * 0.14f),
+            size = Size(w * 0.64f, h * 0.72f),
+            cornerRadius = CornerRadius(w * 0.12f)
+        )
+        drawRoundRect(
+            color = Color(0xFF2196F3),
+            topLeft = Offset(w * 0.16f, h * 0.18f),
+            size = Size(w * 0.64f, h * 0.70f),
+            cornerRadius = CornerRadius(w * 0.12f)
+        )
+        drawRoundRect(
+            color = Color(0xFF0D47A1),
+            topLeft = Offset(w * 0.16f, h * 0.18f),
+            size = Size(w * 0.14f, h * 0.70f),
+            cornerRadius = CornerRadius(w * 0.08f)
+        )
+        drawRoundRect(
+            color = Color(0xFF0D47A1),
+            topLeft = Offset(w * 0.16f, h * 0.18f),
+            size = Size(w * 0.64f, h * 0.70f),
+            cornerRadius = CornerRadius(w * 0.12f),
+            style = Stroke(width = w * 0.05f)
+        )
+
+        dibujarCaritaAsignatura(
+            centroX = w * 0.53f,
+            centroY = h * 0.54f,
+            escala = w * 0.22f
+        )
+    }
+}
+
+@Composable
 private fun IconoMateKawaii(modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
 
-        // Cuerpo de calculadorita azul
         drawRoundRect(
             color = Color(0xFF42A5F5),
             topLeft = Offset(w * 0.20f, h * 0.14f),
@@ -309,7 +530,6 @@ private fun IconoMateKawaii(modifier: Modifier = Modifier) {
             style = Stroke(width = w * 0.045f)
         )
 
-        // Pantallita superior celeste claro
         drawRoundRect(
             color = Color(0xFFE1F5FE),
             topLeft = Offset(w * 0.28f, h * 0.22f),
@@ -317,7 +537,6 @@ private fun IconoMateKawaii(modifier: Modifier = Modifier) {
             cornerRadius = CornerRadius(w * 0.06f)
         )
 
-        // Carita kawaii en el centro
         dibujarCaritaAsignatura(
             centroX = w * 0.50f,
             centroY = h * 0.62f,
@@ -332,7 +551,6 @@ private fun IconoCienciasKawaii(modifier: Modifier = Modifier) {
         val w = size.width
         val h = size.height
 
-        // Macetita terracota
         drawRoundRect(
             color = Color(0xFFFF8A65),
             topLeft = Offset(w * 0.30f, h * 0.56f),
@@ -347,7 +565,6 @@ private fun IconoCienciasKawaii(modifier: Modifier = Modifier) {
             style = Stroke(width = w * 0.04f)
         )
 
-        // Tallito verde
         drawLine(
             color = Color(0xFF2E7D32),
             start = Offset(w * 0.50f, h * 0.56f),
@@ -356,7 +573,6 @@ private fun IconoCienciasKawaii(modifier: Modifier = Modifier) {
             cap = StrokeCap.Round
         )
 
-        // Hojitas verdes felices
         drawOval(
             color = Color(0xFF66BB6A),
             topLeft = Offset(w * 0.22f, h * 0.24f),
@@ -368,7 +584,6 @@ private fun IconoCienciasKawaii(modifier: Modifier = Modifier) {
             size = Size(w * 0.28f, h * 0.18f)
         )
 
-        // Carita kawaii en la maceta
         dibujarCaritaAsignatura(
             centroX = w * 0.50f,
             centroY = h * 0.70f,
@@ -385,7 +600,6 @@ private fun IconoHistoriaKawaii(modifier: Modifier = Modifier) {
         val cx = w / 2f
         val cy = h * 0.48f
 
-        // Base del globo terráqueo
         drawRoundRect(
             color = Color(0xFF8D6E63),
             topLeft = Offset(w * 0.32f, h * 0.80f),
@@ -393,14 +607,12 @@ private fun IconoHistoriaKawaii(modifier: Modifier = Modifier) {
             cornerRadius = CornerRadius(w * 0.05f)
         )
 
-        // Esfera del planeta agua
         drawCircle(
             color = Color(0xFF4FC3F7),
             radius = w * 0.31f,
             center = Offset(cx, cy)
         )
 
-        // Continentes verdes suaves
         drawCircle(
             color = Color(0xFF81C784),
             radius = w * 0.11f,
@@ -412,7 +624,6 @@ private fun IconoHistoriaKawaii(modifier: Modifier = Modifier) {
             center = Offset(cx + w * 0.15f, cy - h * 0.06f)
         )
 
-        // Contorno
         drawCircle(
             color = Color(0xFF0277BD),
             radius = w * 0.31f,
@@ -420,7 +631,6 @@ private fun IconoHistoriaKawaii(modifier: Modifier = Modifier) {
             style = Stroke(width = w * 0.045f)
         )
 
-        // Carita kawaii del planeta
         dibujarCaritaAsignatura(
             centroX = cx,
             centroY = cy + h * 0.04f,

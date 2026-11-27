@@ -1,6 +1,7 @@
 package com.example.explora2.ui.screens.alumno
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
@@ -28,15 +29,17 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.example.explora2.R
 import com.example.explora2.navigation.Screen
 import com.example.explora2.ui.components.BarraNavegacionInferior
-import com.example.explora2.ui.components.IconoLibroInfantil
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -109,17 +112,17 @@ fun UnidadesObjetivoScreen(navController: NavController) {
                         title = {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Box(
+                                Image(
+                                    painter = painterResource(id = R.drawable.poke),
+                                    contentDescription = "Pokéball",
+                                    contentScale = ContentScale.Crop,
                                     modifier = Modifier
-                                        .size(38.dp)
+                                        .size(34.dp)
                                         .clip(CircleShape)
-                                        .background(Color.White),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    IconoLibroInfantil(modifier = Modifier.size(28.dp))
-                                }
+                                        .border(2.dp, Color.White, CircleShape)
+                                )
                                 Column {
                                     Text(
                                         text = "Unidades · $materiaSeleccionada",
@@ -128,7 +131,7 @@ fun UnidadesObjetivoScreen(navController: NavController) {
                                         color = Color.White
                                     )
                                     Text(
-                                        text = "2.° Básico · Elige tu aventura",
+                                        text = "2.° Básico · Explora2",
                                         fontWeight = FontWeight.SemiBold,
                                         fontSize = 12.sp,
                                         color = Color(0xFFFFF8E1)
@@ -151,6 +154,44 @@ fun UnidadesObjetivoScreen(navController: NavController) {
                                     tint = Color(0xFFE65100),
                                     modifier = Modifier.size(22.dp)
                                 )
+                            }
+                        },
+                        actions = {
+                            Surface(
+                                shape = RoundedCornerShape(18.dp),
+                                color = Color.White.copy(alpha = 0.92f),
+                                modifier = Modifier.padding(end = 12.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                ) {
+                                    Image(
+                                        painter = painterResource(id = R.drawable.poke),
+                                        contentDescription = "Pokéball",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .size(22.dp)
+                                            .clip(CircleShape)
+                                    )
+                                    Image(
+                                        painter = painterResource(id = R.drawable.ultra),
+                                        contentDescription = "Ultra Ball",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .size(22.dp)
+                                            .clip(CircleShape)
+                                    )
+                                    Image(
+                                        painter = painterResource(id = R.drawable.master),
+                                        contentDescription = "Master Ball",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .size(22.dp)
+                                            .clip(CircleShape)
+                                    )
+                                }
                             }
                         },
                         colors = TopAppBarDefaults.topAppBarColors(
