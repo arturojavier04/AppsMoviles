@@ -40,6 +40,8 @@ android {
         jvmTarget = "11"
     }
 
+    testOptions.unitTests.all { it.useJUnitPlatform() }
+
     buildFeatures {
         compose = true
     }
@@ -83,6 +85,11 @@ dependencies {
 
     // Pruebas
     testImplementation(libs.junit)
+    testImplementation(libs.kotest.runner)
+    testImplementation(libs.mockk)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testRuntimeOnly(libs.junit.vintage)
+    testRuntimeOnly(libs.junit.launcher)
 
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

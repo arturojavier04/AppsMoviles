@@ -65,7 +65,7 @@ fun FormularioGestionScreen(
             OutlinedTextField(
                 value = uiState.asignatura,
                 onValueChange = onAsignaturaChange,
-                enabled = !uiState.enviadoUtp,
+                enabled = !uiState.enviadoUtp && !uiState.enviando,
                 label = { Text("Asignatura") },
                 isError = errores.asignatura != null,
                 trailingIcon = {
@@ -78,7 +78,7 @@ fun FormularioGestionScreen(
             OutlinedTextField(
                 value = uiState.unidad,
                 onValueChange = onUnidadChange,
-                enabled = !uiState.enviadoUtp,
+                enabled = !uiState.enviadoUtp && !uiState.enviando,
                 label = { Text("Unidad Curricular") },
                 isError = errores.unidad != null,
                 trailingIcon = {
@@ -91,7 +91,7 @@ fun FormularioGestionScreen(
             OutlinedTextField(
                 value = uiState.objetivo,
                 onValueChange = onObjetivoChange,
-                enabled = !uiState.enviadoUtp,
+                enabled = !uiState.enviadoUtp && !uiState.enviando,
                 label = { Text("Objetivo de Aprendizaje (OA)") },
                 isError = errores.objetivo != null,
                 trailingIcon = {
@@ -104,7 +104,7 @@ fun FormularioGestionScreen(
             OutlinedTextField(
                 value = uiState.tipoRecurso,
                 onValueChange = onTipoRecursoChange,
-                enabled = !uiState.enviadoUtp,
+                enabled = !uiState.enviadoUtp && !uiState.enviando,
                 label = { Text("Tipo de Material (Texto / Audio / Visual)") },
                 isError = errores.tipoRecurso != null,
                 trailingIcon = {
@@ -117,7 +117,7 @@ fun FormularioGestionScreen(
             OutlinedTextField(
                 value = uiState.titulo,
                 onValueChange = onTituloChange,
-                enabled = !uiState.enviadoUtp,
+                enabled = !uiState.enviadoUtp && !uiState.enviando,
                 label = { Text("Título de la Actividad") },
                 isError = errores.titulo != null,
                 trailingIcon = {
@@ -130,7 +130,7 @@ fun FormularioGestionScreen(
             OutlinedTextField(
                 value = uiState.descripcion,
                 onValueChange = onDescripcionChange,
-                enabled = !uiState.enviadoUtp,
+                enabled = !uiState.enviadoUtp && !uiState.enviando,
                 label = { Text("Instrucción o Contenido Didáctico") },
                 isError = errores.descripcion != null,
                 trailingIcon = {
@@ -143,6 +143,7 @@ fun FormularioGestionScreen(
             if (!uiState.enviadoUtp) {
                 Button(
                     onClick = onGuardarClick,
+                    enabled = !uiState.enviando,
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
                 ) {
                     Text("Validar Contenido")
@@ -158,11 +159,15 @@ fun FormularioGestionScreen(
 
                 Button(
                     onClick = onEnviarClick,
+                    enabled = !uiState.enviando,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Enviar borrador a UTP")
+                    Text(if (uiState.enviando) "Enviando…" else "Enviar borrador a UTP")
                 }
             }
+
+            uiState.errorEnvio?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            if (uiState.enviando) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
 
             if (uiState.enviadoUtp) {
                 Card(
@@ -174,9 +179,9 @@ fun FormularioGestionScreen(
                 ) {
                     Text(
                         text = if (uiState.autorizado)
-                            "Estado: Autorizado por UTP ✓"
+                            "Solicitud #${uiState.idRemoto} · Autorizada en esta sesión"
                         else
-                            "Estado: Pendiente de revisión por UTP ⌛",
+                            "Solicitud #${uiState.idRemoto} guardada · Pendiente de revisión por UTP",
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.padding(16.dp)
                     )
