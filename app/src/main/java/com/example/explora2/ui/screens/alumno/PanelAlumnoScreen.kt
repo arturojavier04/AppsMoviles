@@ -40,6 +40,7 @@ import com.example.explora2.navigation.Screen
 import com.example.explora2.ui.components.BarraNavegacionInferior
 import com.example.explora2.ui.components.CompaneroPokemonKawaii
 import com.example.explora2.viewmodel.PokemonViewModel
+import com.example.explora2.model.ConsultaAlumnoUiState
 
 private fun reproducirCryPikachu(
     urlAudio: String,
@@ -67,13 +68,19 @@ private fun reproducirCryPikachu(
     }
 }
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PanelAlumnoScreen(
     navController: NavController,
     gestionUiState: GestionUiState,
-    pokemonViewModel: PokemonViewModel = viewModel()
+    pokemonViewModel: PokemonViewModel = viewModel(),
+    consultaAlumno: ConsultaAlumnoUiState =
+        ConsultaAlumnoUiState(cargando = false),
+    onActualizarActividades: () -> Unit = {},
+    onAbrirActividad: (Long) -> Unit = {}
 ) {
+
     val tieneActividad = gestionUiState.autorizado && gestionUiState.asignadoAlumno
     val colorBordeNegro = Color(0xFF1E1E1E)
 
@@ -452,66 +459,110 @@ fun PanelAlumnoScreen(
                             )
                         }
 
-                        if (tieneActividad) {
-                            Text(
-                                text = "¡Tienes una nueva actividad! 🎉",
-                                fontSize = 17.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF3E2723)
-                            )
-                            Text(text = "Título: ${gestionUiState.titulo}", fontSize = 15.sp)
-                            Text(text = "Asignatura: ${gestionUiState.asignatura}", fontSize = 15.sp)
-                            Text(text = "Unidad: ${gestionUiState.unidad}", fontSize = 15.sp)
-                            Text(text = "Objetivo: ${gestionUiState.objetivo}", fontSize = 15.sp)
-                            Text(
-                                text = "Instrucciones: ${gestionUiState.descripcion}",
-                                fontSize = 15.sp
-                            )
 
-                            HorizontalDivider(color = Color(0xFFFFCC80))
+                        OutlinedButton(
+                            onClick = onActualizarActividades,
+                            enabled = !consultaAlumno.cargando &&
+                                    !consultaAlumno.enviando,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Actualizar actividades")
+                        }
 
-                            if (gestionUiState.respuestaEntregada) {
-                                Text(
-                                    text = "✅ Estado: Actividad entregada",
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF2E7D32)
-                                )
-                            } else {
-                                Text(
-                                    text = "⏳ Estado: Pendiente de entrega",
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFFE65100)
-                                )
-                            }
-                        } else {
-                            Text(
-                                text = "Todavía no tienes tareas extra asignadas.",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF5D4037)
-                            )
-                            Text(
-                                text = "Cuando tu docente envíe un contenido aprobado por UTP aparecerá aquí.",
-                                fontSize = 14.sp,
-                                color = Color(0xFF6D4C41)
+                        if (consultaAlumno.cargando) {
+                            LinearProgressIndicator(
+                                modifier = Modifier.fillMaxWidth()
                             )
                         }
 
-                        Button(
-                            onClick = { navController.navigate(Screen.ActividadAsignada.route) },
-                            enabled = tieneActividad,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(52.dp),
-                            shape = RoundedCornerShape(18.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800))
+                        consultaAlumno.error?.let {
+                            Text(
+                                text = it,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+
+                        if (!consultaAlumno.cargando &&
+                            consultaAlumno.error == null &&
+                            consultaAlumno.actividades.isEmpty()
                         ) {
                             Text(
-                                text = "Abrir Actividad 🌟",
-                                fontSize = 17.sp,
-                                fontWeight = FontWeight.ExtraBold
+                                text = "Todavía no tienes tareas asignadas.",
+                                fontSize = 15.sp
                             )
                         }
+
+                        consultaAlumno.actividades.forEach { plan ->
+
+                            HorizontalDivider(
+                                color = Color(0xFFFFCC80)
+                            )
+
+                            Text(
+                                text = "#${plan.id} · ${plan.titulo.orEmpty()}",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Text("Asignatura: ${plan.asignatura.orEmpty()}")
+                            Text("Unidad: ${plan.unidad.orEmpty()}")
+                            Text("Objetivo: ${plan.objetivo.orEmpty()}")
+
+                            Text(
+                                text = if (plan.respuestaEntregada)
+                                    "✅ Actividad entregada"
+                                else
+                                    "⏳ Pendiente de entrega",
+                                fontWeight = FontWeight.Bold,
+                                color = if (plan.respuestaEntregada)
+                                    Color(0xFF2E7D32)
+                                else
+                                    Color(0xFFE65100)
+                            )
+
+                            Button(
+                                onClick = {
+                                    plan.id?.let(onAbrirActividad)
+                                },
+                                enabled = plan.id != null &&
+                                        !consultaAlumno.cargando &&
+                                        !consultaAlumno.enviando,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(52.dp),
+                                shape = RoundedCornerShape(18.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFFFF9800)
+                                )
+                            ) {
+                                Text(
+                                    text = if (plan.respuestaEntregada)
+                                        "Ver mi respuesta"
+                                    else
+                                        "Abrir actividad 🌟",
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.ExtraBold
+                                )
+                            }
+                        }
+
+                            // Conserva el acceso a las actividades de práctica local.
+                        if (tieneActividad && gestionUiState.idRemoto == null) {
+                            HorizontalDivider()
+
+                            Text("Actividad de práctica local")
+
+                            Button(
+                                onClick = {
+                                    navController.navigate(
+                                        Screen.ActividadAsignada.route
+                                    )
+                                }
+                            ) {
+                                Text("Abrir práctica local")
+                            }
+                        }
+
                     }
                 }
             }

@@ -17,6 +17,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import com.example.explora2.model.ConsultaDocenteUiState
+import com.example.explora2.model.ConsultaAlumnoUiState
+
 
 class GestionViewModel(
     private val repositorio: PlanificacionRepository = PlanificacionRepository()
@@ -33,6 +35,17 @@ class GestionViewModel(
         _consultaDocente
 
     private var consultaDocenteActiva: Job? = null
+
+
+    private val _consultaAlumno =
+        MutableStateFlow(ConsultaAlumnoUiState())
+
+    val consultaAlumno: StateFlow<ConsultaAlumnoUiState> =
+        _consultaAlumno
+
+    private var consultaAlumnoActiva: Job? = null
+    private var detalleAlumnoActivo: Job? = null
+
 
 
 
@@ -411,6 +424,107 @@ class GestionViewModel(
     }
 
     // Actualizacion de la respuesta del alumno
+
+
+    fun cargarActividadesAlumno() {
+
+
+
+
+        if (_consultaAlumno.value.enviando) return
+
+        consultaAlumnoActiva?.cancel()
+
+        _consultaAlumno.update {
+            it.copy(
+                cargando = true,
+                error = null
+            )
+        }
+
+        consultaAlumnoActiva = viewModelScope.launch {
+            try {
+                val actividades = repositorio.listarAsignadas()
+
+                _consultaAlumno.update {
+                    it.copy(
+                        cargando = false,
+                        actividades = actividades
+                    )
+                }
+
+            } catch (e: CancellationException) {
+                throw e
+
+            } catch (e: Exception) {
+                _consultaAlumno.update {
+                    it.copy(
+                        cargando = false,
+                        error = "No se pudieron cargar las actividades."
+                    )
+                }
+            }
+        }
+    }
+
+
+    fun abrirActividadAlumno(id: Long) {
+
+        if (_consultaAlumno.value.enviando) return
+
+        detalleAlumnoActivo?.cancel()
+
+        _consultaAlumno.update {
+            it.copy(
+                cargandoDetalle = true,
+                detalle = null,
+                respuesta = "",
+                errorDetalle = null,
+                errorRespuesta = null
+            )
+        }
+
+        detalleAlumnoActivo = viewModelScope.launch {
+            try {
+                val plan = repositorio.obtenerPorId(id)
+
+                if (plan.id != id ||
+                    !plan.validado ||
+                    !plan.enviadoUtp ||
+                    !plan.autorizado ||
+                    !plan.asignadoAlumno
+                ) {
+                    _consultaAlumno.update {
+                        it.copy(
+                            cargandoDetalle = false,
+                            errorDetalle = "Esta actividad no está disponible."
+                        )
+                    }
+                    return@launch
+                }
+
+                _consultaAlumno.update {
+                    it.copy(
+                        cargandoDetalle = false,
+                        detalle = plan,
+                        respuesta = plan.respuestaAlumno.orEmpty()
+                    )
+                }
+
+            } catch (e: CancellationException) {
+                throw e
+
+            } catch (e: Exception) {
+                _consultaAlumno.update {
+                    it.copy(
+                        cargandoDetalle = false,
+                        errorDetalle = "No se pudo abrir la actividad."
+                    )
+                }
+            }
+        }
+    }
+
     fun onRespuestaAlumnoChange(valor: String) {
         _estado.update {
             it.copy(
@@ -437,6 +551,128 @@ class GestionViewModel(
             }
         }
     }
+
+
+    fun cambiarRespuestaRemota(valor: String) {
+
+        val actual = _consultaAlumno.value
+
+        if (actual.enviando ||
+            actual.detalle == null ||
+            actual.detalle.respuestaEntregada
+        ) return
+
+        _consultaAlumno.update {
+            it.copy(
+                respuesta = valor,
+                errorRespuesta = null
+            )
+        }
+    }
+
+
+    fun entregarRespuestaRemota() {
+
+        val estado = _consultaAlumno.value
+        val detalle = estado.detalle ?: return
+        val id = detalle.id ?: return
+
+        if (estado.enviando ||
+            estado.cargandoDetalle ||
+            detalle.respuestaEntregada
+        ) return
+
+        val respuesta = estado.respuesta.trim()
+
+        if (respuesta.isBlank()) {
+            _consultaAlumno.update {
+                it.copy(
+                    errorRespuesta = "Debes escribir una respuesta."
+                )
+            }
+            return
+        }
+
+        _consultaAlumno.update {
+            it.copy(
+                enviando = true,
+                errorRespuesta = null
+            )
+        }
+
+        viewModelScope.launch {
+            try {
+                val actual = repositorio.obtenerPorId(id)
+
+                if (actual.id != id ||
+                    !actual.validado ||
+                    !actual.enviadoUtp ||
+                    !actual.autorizado ||
+                    !actual.asignadoAlumno
+                ) {
+                    _consultaAlumno.update {
+                        it.copy(
+                            errorRespuesta = "La actividad ya no está disponible."
+                        )
+                    }
+                    return@launch
+                }
+
+                val actualizado = if (actual.respuestaEntregada) {
+                    actual
+                } else {
+                    repositorio.actualizar(
+                        id,
+                        actual.copy(
+                            respuestaAlumno = respuesta,
+                            respuestaEntregada = true
+                        )
+                    ).also {
+                        if (it.respuestaAlumno != respuesta) {
+                            throw IllegalStateException(
+                                "La respuesta no coincide"
+                            )
+                        }
+                    }
+                }
+
+                if (!actualizado.respuestaEntregada) {
+                    throw IllegalStateException(
+                        "El servidor no confirmó la entrega"
+                    )
+                }
+
+                _consultaAlumno.update { anterior ->
+                    anterior.copy(
+                        detalle = actualizado,
+                        respuesta =
+                            actualizado.respuestaAlumno.orEmpty(),
+                        actividades = anterior.actividades.map {
+                            if (it.id == id) actualizado else it
+                        },
+                        errorRespuesta = null
+                    )
+                }
+
+            } catch (e: CancellationException) {
+                throw e
+
+            } catch (e: Exception) {
+                _consultaAlumno.update {
+                    it.copy(
+                        errorRespuesta =
+                            "No se pudo confirmar la entrega. Intenta nuevamente."
+                    )
+                }
+
+            } finally {
+                _consultaAlumno.update {
+                    it.copy(enviando = false)
+                }
+            }
+        }
+    }
+
 
     // Reinicia el formulario para redactar una nueva planificacion
     fun nuevaPlanificacion() {

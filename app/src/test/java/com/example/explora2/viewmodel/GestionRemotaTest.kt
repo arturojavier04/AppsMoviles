@@ -454,4 +454,278 @@ class GestionRemotaTest : FunSpec({
         }
     }
 
+    test("alumno recupera solo actividades asignadas") {
+
+        val asignada = plan.copy(
+            validado = true,
+            autorizado = true,
+            asignadoAlumno = true
+        )
+
+        val noAsignada = asignada.copy(
+            id = 48,
+            asignadoAlumno = false
+        )
+
+        val noAutorizada = asignada.copy(
+            id = 49,
+            autorizado = false
+        )
+
+        coEvery { api.listar() } returns
+                listOf(asignada, noAsignada, noAutorizada)
+
+        vm.cargarActividadesAlumno()
+
+        assertEquals(
+            listOf(asignada),
+            vm.consultaAlumno.value.actividades
+        )
+
+        assertFalse(vm.consultaAlumno.value.cargando)
+        assertNull(vm.consultaAlumno.value.error)
+    }
+
+    test("alumno no puede abrir una actividad sin asignar") {
+
+        val actividad = plan.copy(
+            validado = true,
+            autorizado = true,
+            asignadoAlumno = false
+        )
+
+        coEvery { api.obtenerPorId(47) } returns actividad
+
+        vm.abrirActividadAlumno(47)
+
+        assertNull(vm.consultaAlumno.value.detalle)
+        assertNotNull(vm.consultaAlumno.value.errorDetalle)
+        assertFalse(vm.consultaAlumno.value.cargandoDetalle)
+    }
+
+
+    test("alumno no puede entregar una respuesta vacía") {
+
+        val actividad = plan.copy(
+            validado = true,
+            autorizado = true,
+            asignadoAlumno = true
+        )
+
+        coEvery { api.obtenerPorId(47) } returns actividad
+
+        vm.abrirActividadAlumno(47)
+        vm.cambiarRespuestaRemota("   ")
+        vm.entregarRespuestaRemota()
+
+        assertNotNull(vm.consultaAlumno.value.errorRespuesta)
+
+        assertFalse(
+            vm.consultaAlumno.value.detalle!!.respuestaEntregada
+        )
+
+        coVerify(exactly = 0) {
+            api.actualizar(any(), any())
+        }
+    }
+
+
+    test("alumno entrega una respuesta correctamente") {
+
+        val actividad = plan.copy(
+            validado = true,
+            autorizado = true,
+            asignadoAlumno = true,
+            respuestaEntregada = false
+        )
+
+        val entregada = actividad.copy(
+            respuestaAlumno = "El león y el ratón",
+            respuestaEntregada = true
+        )
+
+        coEvery { api.listar() } returns listOf(actividad)
+
+        coEvery { api.obtenerPorId(47) } returns actividad
+
+        coEvery { api.actualizar(47, entregada) } returns
+                Response.success(entregada)
+
+        vm.cargarActividadesAlumno()
+        vm.abrirActividadAlumno(47)
+        vm.cambiarRespuestaRemota("El león y el ratón")
+        vm.entregarRespuestaRemota()
+
+        assertEquals(
+            entregada,
+            vm.consultaAlumno.value.detalle
+        )
+
+        assertEquals(
+            entregada,
+            vm.consultaAlumno.value.actividades.first()
+        )
+
+        assertNull(vm.consultaAlumno.value.errorRespuesta)
+        assertFalse(vm.consultaAlumno.value.enviando)
+
+        coVerify(exactly = 1) {
+            api.actualizar(47, entregada)
+        }
+    }
+
+    test("un error de conexión conserva la respuesta escrita") {
+
+        val actividad = plan.copy(
+            validado = true,
+            autorizado = true,
+            asignadoAlumno = true
+        )
+
+        coEvery { api.obtenerPorId(47) } returns actividad
+
+        coEvery {
+            api.actualizar(any(), any())
+        } throws ConnectException()
+
+        vm.abrirActividadAlumno(47)
+        vm.cambiarRespuestaRemota("Mi respuesta")
+        vm.entregarRespuestaRemota()
+
+        assertEquals(
+            "Mi respuesta",
+            vm.consultaAlumno.value.respuesta
+        )
+
+        assertFalse(
+            vm.consultaAlumno.value.detalle!!.respuestaEntregada
+        )
+
+        assertNotNull(vm.consultaAlumno.value.errorRespuesta)
+        assertFalse(vm.consultaAlumno.value.enviando)
+    }
+
+
+    test("dos pulsaciones simultáneas solo realizan una entrega") {
+
+        val actividad = plan.copy(
+            validado = true,
+            autorizado = true,
+            asignadoAlumno = true
+        )
+
+        val entregada = actividad.copy(
+            respuestaAlumno = "Mi respuesta",
+            respuestaEntregada = true
+        )
+
+        val pendiente =
+            CompletableDeferred<Response<PlanificacionDto>>()
+
+        coEvery { api.obtenerPorId(47) } returns actividad
+
+        coEvery {
+            api.actualizar(47, entregada)
+        } coAnswers {
+            pendiente.await()
+        }
+
+        vm.abrirActividadAlumno(47)
+        vm.cambiarRespuestaRemota("Mi respuesta")
+
+        vm.entregarRespuestaRemota()
+        vm.entregarRespuestaRemota()
+
+        assertTrue(vm.consultaAlumno.value.enviando)
+
+        pendiente.complete(
+            Response.success(entregada)
+        )
+
+        coVerify(exactly = 1) {
+            api.actualizar(47, entregada)
+        }
+
+        assertTrue(
+            vm.consultaAlumno.value.detalle!!.respuestaEntregada
+        )
+
+        assertFalse(vm.consultaAlumno.value.enviando)
+    }
+
+
+    test("alumno recupera una respuesta previamente entregada") {
+
+        val entregada = plan.copy(
+            validado = true,
+            autorizado = true,
+            asignadoAlumno = true,
+            respuestaAlumno = "Respuesta original",
+            respuestaEntregada = true
+        )
+
+        coEvery { api.obtenerPorId(47) } returns entregada
+
+        vm.abrirActividadAlumno(47)
+        vm.cambiarRespuestaRemota("Otra respuesta")
+        vm.entregarRespuestaRemota()
+
+        assertEquals(
+            "Respuesta original",
+            vm.consultaAlumno.value.respuesta
+        )
+
+        assertTrue(
+            vm.consultaAlumno.value.detalle!!.respuestaEntregada
+        )
+
+        coVerify(exactly = 0) {
+            api.actualizar(any(), any())
+        }
+    }
+
+
+    test("una entrega existente en el servidor no se sobrescribe") {
+
+        val actividad = plan.copy(
+            validado = true,
+            autorizado = true,
+            asignadoAlumno = true
+        )
+
+        val entregada = actividad.copy(
+            respuestaAlumno = "Respuesta guardada",
+            respuestaEntregada = true
+        )
+
+        coEvery {
+            api.obtenerPorId(47)
+        } returnsMany listOf(actividad, entregada)
+
+        vm.abrirActividadAlumno(47)
+        vm.cambiarRespuestaRemota("Nueva respuesta")
+        vm.entregarRespuestaRemota()
+
+        assertEquals(
+            "Respuesta guardada",
+            vm.consultaAlumno.value.respuesta
+        )
+
+        assertTrue(
+            vm.consultaAlumno.value.detalle!!.respuestaEntregada
+        )
+
+        coVerify(exactly = 0) {
+            api.actualizar(any(), any())
+        }
+    }
+
+
+
+
+
+
+
+
+
 })

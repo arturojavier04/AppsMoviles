@@ -8,6 +8,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+
 
 // Inicio
 import com.example.explora2.ui.screens.inicio.HomeScreen
@@ -17,6 +23,8 @@ import com.example.explora2.ui.screens.perfiles.PerfilesScreen
 import com.example.explora2.ui.screens.perfiles.RegistroAccesoScreen
 import com.example.explora2.ui.screens.perfiles.FichaRegistroScreen
 import com.example.explora2.ui.screens.perfiles.AvatarPersonalizacionScreen
+
+
 
 // Docentes
 import com.example.explora2.ui.screens.docentes.PanelDocenteScreen
@@ -61,11 +69,24 @@ sealed class Screen(val route: String) {
     data object RendirPrueba : Screen("rendir_prueba")
     data object ActividadAsignada : Screen("actividad_asignada")
 
+    data object ActividadRemota :
+        Screen("actividad_remota/{id}") {
+
+        fun crearRuta(id: Long): String =
+            "actividad_remota/$id"
+    }
+
     // Docente
     data object PanelDocente : Screen("panel_docente")
     data object GestionContenido : Screen("gestion_contenido")
     data object ConfiguracionExamen : Screen("config_examen")
     data object RevisionEntregas : Screen("revision_entregas")
+
+
+
+
+
+
 
     // UTP
     data object PanelUtp : Screen("panel_utp")
@@ -121,11 +142,28 @@ fun AppNavigation() {
         // ALUMNO
 
         composable(Screen.PanelEstudiante.route) {
-            val estado by gestionViewModel.estado.collectAsState()
+
+            val estado by
+            gestionViewModel.estado.collectAsState()
+
+            val consultaAlumno by
+            gestionViewModel.consultaAlumno.collectAsState()
+
+            androidx.compose.runtime.LaunchedEffect(Unit) {
+                gestionViewModel.cargarActividadesAlumno()
+            }
 
             PanelAlumnoScreen(
                 navController = navController,
-                gestionUiState = estado
+                gestionUiState = estado,
+                consultaAlumno = consultaAlumno,
+                onActualizarActividades =
+                    gestionViewModel::cargarActividadesAlumno,
+                onAbrirActividad = { id ->
+                    navController.navigate(
+                        Screen.ActividadRemota.crearRuta(id)
+                    )
+                }
             )
         }
 
@@ -182,6 +220,81 @@ fun AppNavigation() {
         }
 
         // DOCENTE
+
+
+
+        composable(
+            route = Screen.ActividadRemota.route,
+            arguments = listOf(
+                navArgument("id") {
+                    type = NavType.LongType
+                }
+            )
+        ) { entrada ->
+
+            val id = entrada.arguments?.getLong("id") ?: -1L
+
+            val consulta by
+            gestionViewModel.consultaAlumno.collectAsState()
+
+            androidx.compose.runtime.LaunchedEffect(id) {
+                gestionViewModel.abrirActividadAlumno(id)
+            }
+
+            val plan = consulta.detalle
+
+            if (consulta.cargandoDetalle) {
+
+                Column {
+                    CircularProgressIndicator()
+                    Text("Cargando actividad...")
+                }
+
+            } else if (plan != null && plan.id == id) {
+
+                ActividadLecturaScreen(
+                    titulo = plan.titulo.orEmpty(),
+                    instrucciones = plan.descripcion.orEmpty(),
+                    respuestaEstudiante = consulta.respuesta,
+                    errorRespuesta = consulta.errorRespuesta,
+                    respuestaEntregada = plan.respuestaEntregada,
+                    onRespuestaChange =
+                        gestionViewModel::cambiarRespuestaRemota,
+                    onEnviarClick =
+                        gestionViewModel::entregarRespuestaRemota,
+                    onVolverClick = {
+                        navController.popBackStack()
+                    },
+                    enviando = consulta.enviando
+                )
+
+            } else {
+
+                Column {
+                    Text(
+                        consulta.errorDetalle
+                            ?: "Actividad no disponible."
+                    )
+
+                    Button(
+                        onClick = {
+                            gestionViewModel.abrirActividadAlumno(id)
+                        }
+                    ) {
+                        Text("Reintentar")
+                    }
+
+                    Button(
+                        onClick = {
+                            navController.popBackStack()
+                        }
+                    ) {
+                        Text("Volver")
+                    }
+                }
+            }
+        }
+
 
 
         composable(Screen.PanelDocente.route) {

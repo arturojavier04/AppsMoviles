@@ -43,6 +43,13 @@ class PlanificacionRepository(
         }
 
 
+    suspend fun listarAsignadas(): List<PlanificacionDto> =
+        listarAutorizadas().filter {
+            it.asignadoAlumno
+        }
+
+
+
     suspend fun obtenerPorId(id: Long): PlanificacionDto =
         api.obtenerPorId(id)
 

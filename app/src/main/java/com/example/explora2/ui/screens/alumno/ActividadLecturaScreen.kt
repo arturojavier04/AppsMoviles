@@ -71,6 +71,7 @@ private fun reproducirCryCharmander(
     }
 }
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ActividadLecturaScreen(
@@ -81,8 +82,10 @@ fun ActividadLecturaScreen(
     respuestaEntregada: Boolean,
     onRespuestaChange: (String) -> Unit,
     onEnviarClick: () -> Unit,
-    onVolverClick: () -> Unit
+    onVolverClick: () -> Unit,
+    enviando: Boolean = false
 ) {
+
     val colorBordeNegro = Color(0xFF1E1E1E)
     var mostrarBienvenidaCharmander by remember { mutableStateOf(true) }
     var yaSonoAlPasarDedo by remember { mutableStateOf(false) }
@@ -361,7 +364,7 @@ fun ActividadLecturaScreen(
                                     )
                                 }
                             },
-                            enabled = !respuestaEntregada,
+                            enabled = !respuestaEntregada && !enviando,
                             shape = RoundedCornerShape(18.dp),
                             minLines = 3,
                             colors = OutlinedTextFieldDefaults.colors(
@@ -375,7 +378,7 @@ fun ActividadLecturaScreen(
 
                         Button(
                             onClick = onEnviarClick,
-                            enabled = !respuestaEntregada,
+                            enabled = !respuestaEntregada && !enviando,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(54.dp),
