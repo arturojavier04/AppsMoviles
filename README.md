@@ -82,7 +82,7 @@ Las operaciones POST y PUT utilizan JSON. Los PUT de planificación envían el o
 
 ## Pasos para ejecutar (Windows)
 
-### 1\. Backend
+### 1. Backend
 
 Requisitos: JDK 21, XAMPP con MySQL/MariaDB activo en el puerto 3306, conexión a internet para descargar dependencias cuando corresponda.
 
@@ -90,10 +90,10 @@ Requisitos: JDK 21, XAMPP con MySQL/MariaDB activo en el puerto 3306, conexión 
 git clone https://github.com/kevishowardgonzalez/Explora2-backend.git
 cd Explora2-backend
 java -version
-.\\gradlew.bat bootRun
+.\gradlew.bat bootRun
 ```
 
-La base `explora2\_db` se crea si no existe y las tablas se actualizan mediante Hibernate según la configuración del servicio. Revisar `application.properties` y usar credenciales locales adecuadas; pueden suministrarse mediante las variables `SPRING\_DATASOURCE\_USERNAME` y `SPRING\_DATASOURCE\_PASSWORD`.
+La base `explora2_db` se crea si no existe y las tablas se actualizan mediante Hibernate según la configuración del servicio. Revisar `application.properties` y usar credenciales locales adecuadas; pueden suministrarse mediante las variables `SPRING_DATASOURCE_USERNAME` y `SPRING_DATASOURCE_PASSWORD`.
 
 Mantener el backend ejecutándose y, en otra terminal, comprobar:
 
@@ -102,28 +102,28 @@ curl.exe -i http://localhost:8089/api/planificaciones
 curl.exe -i http://localhost:8089/api/configuracion-examen
 ```
 
-Ambas consultas deben devolver HTTP 200. Una colección vacía puede devolver `\[]`.
+Ambas consultas deben devolver HTTP 200. Una colección vacía puede devolver `[]`.
 
-### 2\. Aplicación Android
+### 2. Aplicación Android
 
 Requisitos: Android Studio, JDK 17 para Gradle de Android, SDK 36 y emulador Android (API 24 o superior).
 
 ```powershell
 git clone https://github.com/arturojavier04/AppsMoviles.git
 cd AppsMoviles
-.\\gradlew.bat :app:assembleDebug
+.\gradlew.bat :app:assembleDebug
 ```
 
 Abrir el proyecto en Android Studio, sincronizar Gradle, iniciar un emulador y ejecutar la configuración `app`. Mantener XAMPP y Spring Boot activos. La dirección `10.0.2.2` corresponde al equipo anfitrión del emulador; no es una dirección de producción ni sirve directamente para un teléfono físico.
 
-### 3\. APK firmado
+### 3. APK firmado
 
 Instalar el APK de entrega en el emulador con Android Studio o ADB:
 
 ```powershell
-$env:Path += ";$env:LOCALAPPDATA\\Android\\Sdk\\platform-tools"
+$env:Path += ";$env:LOCALAPPDATA\Android\Sdk\platform-tools"
 adb devices
-adb install -r app\\release\\app-release.apk
+adb install -r app\release\app-release.apk
 adb shell am start -n com.example.appmpazpro2/com.example.explora2.MainActivity
 ```
 
@@ -132,10 +132,10 @@ Ajustar la ruta al APK si se descargó en otra carpeta. Si existe una instalaci�
 ## Pruebas unitarias y cobertura
 
 ```powershell
-.\\gradlew.bat :app:testDebugUnitTest
-.\\gradlew.bat :app:createDebugUnitTestCoverageReport
-Start-Process app\\build\\reports\\tests\\testDebugUnitTest\\index.html
-Start-Process app\\build\\reports\\coverage\\test\\debug\\index.html
+.\gradlew.bat :app:testDebugUnitTest
+.\gradlew.bat :app:createDebugUnitTestCoverageReport
+Start-Process app\build\reports\tests\testDebugUnitTest\index.html
+Start-Process app\build\reports\coverage\test\debug\index.html
 ```
 
 Se probaron validaciones, ViewModels, acceso a repositorios, respuestas y errores REST simulados, PokeAPI y persistencia temporal DataStore (preferencias, intentos, notas, límites y migración de progreso).
@@ -180,7 +180,7 @@ MVP académico para ejecución local con datos ficticios. Los perfiles y las reg
 
 
 
-\## Generación del APK firmado mediante Gradle
+## Generación del APK firmado mediante Gradle
 
 
 
@@ -188,17 +188,17 @@ Crear un archivo local `keystore.properties` en la raíz del proyecto con las si
 
 
 
-\- storeFile: ruta de la llave JKS.
+- storeFile: ruta de la llave JKS.
 
-\- storePassword: contraseña del almacén.
+- storePassword: contraseña del almacén.
 
-\- keyAlias: alias de la llave.
+- keyAlias: alias de la llave.
 
-\- keyPassword: contraseña de la llave.
+- keyPassword: contraseña de la llave.
 
 
 
-Ejecutar `.\\gradlew.bat :app:assembleRelease`.
+Ejecutar `.\gradlew.bat :app:assembleRelease`.
 
 
 
@@ -210,19 +210,19 @@ Las credenciales y la llave privada están excluidas del control de versiones.
 
 
 
-\## Resultados finales de pruebas
+## Resultados finales de pruebas
 
 
 
-\- Pruebas ejecutadas: 89.
+- Pruebas ejecutadas: 89.
 
-\- Pruebas aprobadas: 89.
+- Pruebas aprobadas: 89.
 
-\- Fallos: 0.
+- Fallos: 0.
 
-\- Tasa de éxito: 100%.
+- Tasa de éxito: 100%.
 
-\- Cobertura de líneas en ViewModels y repositorios: 81,1%.
+- Cobertura de líneas en ViewModels y repositorios: 81,1%.
 
 
 
